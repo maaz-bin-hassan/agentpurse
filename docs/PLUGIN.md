@@ -64,6 +64,18 @@ Run it from this repository after `npm install`. The process speaks MCP stdio fr
 }
 ```
 
+## Test the endpoint without deploying
+
+With `npm run dev` running:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/mcp \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maya` and `Accept: application/json, text/event-stream` returns the five tools. `tests/mcp.test.ts` covers the tool calls and the OAuth code exchange. `npm run mcp` is the stdio process for Claude Desktop.
+
 ## Example
 
 User: "Buy oat milk from Green Grocer for $18.40."

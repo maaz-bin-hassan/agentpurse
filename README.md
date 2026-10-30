@@ -6,7 +6,9 @@ Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/). Def
 
 ## For judges
 
-You can review this without creating a PayPal sandbox account, a model key, or a Supabase project.
+Live demo: `https://YOUR-APP.vercel.app` (replace after `npm run deploy`). Until that URL exists, the commands below are the demo. No PayPal account, model key, or Supabase project is required.
+
+### 60-second quickstart
 
 ```bash
 npm install
@@ -15,7 +17,20 @@ npm run seed
 npm run dev
 ```
 
-Open http://localhost:3000/purses/purse_maya. The first boot seeds Maya's household if the database is empty. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`.
+Open http://localhost:3000, then http://localhost:3000/purses/purse_maya. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`. **Reset demo** on the household page restores the seed.
+
+### Test logins
+
+There is no password. In mock mode the browser receives an httpOnly demo session for Maya Chen. Agent API keys:
+
+| Who | Key |
+| --- | --- |
+| Grocer | `agpk_grocer_demo_maya` |
+| Wayfinder | `agpk_wayfinder_demo_maya` |
+| Stack | `agpk_stack_demo_maya` |
+| Handy | `agpk_handy_demo_maya` |
+
+Sandbox client id and secret are not in this repo. MaAz keeps those for judges through 15 December 2026. See `docs/SUBMISSION_CHECKLIST.md`.
 
 What you are judging:
 
@@ -31,7 +46,11 @@ Three-minute path (`docs/DEMO.md`):
 3. Pause an agent, hit **Panic freeze**, then **Revoke PayPal** (the vault token is deleted).
 4. Call the MCP server with `Authorization: Bearer agpk_grocer_demo_maya` and ask it to buy oat milk.
 
-Paste-ready submission text is in `docs/DEVPOST.md`. Deploy notes are in `docs/DEPLOY.md`. AI tools are listed in `docs/AI-TOOLS.md`.
+Paste-ready submission text is in `docs/DEVPOST.md`. The video script is `docs/DEMO.md`. The rule-by-rule status is `docs/SUBMISSION_CHECKLIST.md`. Deploy notes are in `docs/DEPLOY.md`. AI tools are listed in `docs/AI-TOOLS.md`. The architecture diagram is in `docs/ARCHITECTURE.md`.
+
+Suggested GitHub About description: “A purse AI agents spend from. PayPal charges the merchant. The model does not move the money.”
+
+Suggested topics: `paypal`, `ai-agents`, `mcp`, `nextjs`, `hackathon`, `agentic-commerce`, `typescript`.
 
 ## Scripts
 
