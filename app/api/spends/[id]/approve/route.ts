@@ -1,5 +1,5 @@
 import { getDb } from "@/src/db/connection";
-import { approveSpend } from "@/src/server/actions";
+import { approveIntent } from "@/src/server/actions";
 import { asResponse, readJson } from "@/src/server/http";
 
 export const dynamic = "force-dynamic";
@@ -9,5 +9,5 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const body = await readJson(request);
   const note = typeof body.note === "string" ? body.note : undefined;
-  return asResponse(await approveSpend(getDb(), id, note));
+  return asResponse(await approveIntent(await getDb(), id, note, { method: "dashboard" }));
 }

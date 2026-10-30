@@ -14,6 +14,16 @@ export type SpendStatus =
   | "refunded";
 
 export type AgentStatus = "active" | "paused";
+export type VaultStatus = "payer_action_required" | "vaulted" | "revoked";
+export type IntentStatus =
+  | "denied"
+  | "blocked"
+  | "needs_clarification"
+  | "pending_approval"
+  | "awaiting_paypal"
+  | "captured"
+  | "refunded"
+  | "failed";
 
 export interface RuleHit {
   code: string;
@@ -42,13 +52,42 @@ export interface Envelope {
   createdAt: string;
 }
 
+export interface Owner {
+  id: string;
+  name: string;
+  email: string;
+  panicFrozen: boolean;
+  createdAt: string;
+}
+
+export interface Vault {
+  id: string;
+  ownerId: string;
+  setupTokenId: string | null;
+  paymentTokenId: string | null;
+  paypalCustomerId: string | null;
+  payerEmail: string | null;
+  status: VaultStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Agent {
   id: string;
-  purseId: string;
+  ownerId: string;
   name: string;
+  provider: string;
   description: string;
-  allowedCategories: Category[];
+  apiKeyPrefix: string;
+  allowanceCents: number;
   status: AgentStatus;
+  allowedCategories: Category[];
+  perTxnCapCents: number;
+  dailyCapCents: number;
+  approvalThresholdCents: number;
+  trustedMerchantsOnly: boolean;
+  policyText: string | null;
+  policySource: string | null;
   createdAt: string;
 }
 
@@ -58,6 +97,53 @@ export interface Merchant {
   category: Category;
   trusted: boolean;
   blocked: boolean;
+  paypalEmail: string;
+}
+
+export interface IntentRecord {
+  id: string;
+  agentId: string;
+  ownerId: string;
+  originalTask: string;
+  rawText: string;
+  pageExcerpt: string | null;
+  merchantName: string | null;
+  merchantEmail: string | null;
+  amountCents: number | null;
+  currency: string | null;
+  category: Category | null;
+  purpose: string | null;
+  confidence: number | null;
+  guardDecision: "pass" | "block" | null;
+  guardReasons: RuleHit[];
+  decision: Decision | null;
+  decisionReasons: RuleHit[];
+  explanation: string | null;
+  status: IntentStatus;
+  paypalOrderId: string | null;
+  captureId: string | null;
+  approvalMethod: string | null;
+  quoteId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Receipt {
+  id: string;
+  intentId: string;
+  agentId: string;
+  ownerId: string;
+  kind: "capture" | "refund";
+  amountCents: number;
+  currency: string;
+  merchantName: string;
+  paypalOrderId: string | null;
+  captureId: string | null;
+  refundId: string | null;
+  customId: string;
+  webhookEventId: string | null;
+  detail: string;
+  createdAt: string;
 }
 
 export interface SpendRequest {

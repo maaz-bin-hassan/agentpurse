@@ -1,10 +1,11 @@
-import type { DatabaseSync } from "node:sqlite";
-import { paypalMode, type AppEnv } from "@/src/config";
+import type { AppEnv } from "@/src/config";
+import { paypalMode } from "@/src/config";
+import type { Sql } from "@/src/db/sql";
 import { createLivePayPal } from "@/src/paypal/live";
 import { createMockPayPal } from "@/src/paypal/mock";
 import type { PayPalClient } from "@/src/paypal/types";
 
-export function createPayPalClient(db: DatabaseSync, env: AppEnv = process.env): PayPalClient {
+export function createPayPalClient(sql: Sql, env: AppEnv = process.env): PayPalClient {
   if (paypalMode(env) === "live") {
     const clientId = env.PAYPAL_CLIENT_ID;
     const clientSecret = env.PAYPAL_CLIENT_SECRET;
@@ -19,8 +20,8 @@ export function createPayPalClient(db: DatabaseSync, env: AppEnv = process.env):
       baseUrl: env.PAYPAL_API_BASE,
     });
   }
-  return createMockPayPal(db);
+  return createMockPayPal(sql);
 }
 
 export { PayPalError } from "@/src/paypal/types";
-export type { PayPalClient, PaypalOrder, PaypalRefund } from "@/src/paypal/types";
+export type { PayPalClient, PaypalOrder, PaypalRefund, StoredCredential } from "@/src/paypal/types";

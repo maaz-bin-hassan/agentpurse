@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { getDb } from "@/src/db/connection";
-import { formatMoney } from "@/src/domain/money";
-import { listPurseSummaries } from "@/src/server/view";
+import { listHouseholds } from "@/src/server/view";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export default function HomePage() {
-  const purses = listPurseSummaries(getDb());
+export default async function HomePage() {
+  const households = await listHouseholds(await getDb());
 
   return (
     <main className="shell">
@@ -19,57 +18,44 @@ export default function HomePage() {
           PayPal mock mode
         </p>
       </header>
-      <p className="eyebrow">A checkbook for agents</p>
+      <p className="eyebrow">Agentic commerce</p>
       <h1 style={{ fontSize: "clamp(2.6rem, 6vw, 4.6rem)", margin: "8px 0 0" }}>
         The purse your agents spend from.
       </h1>
       <hr className="rule" />
       <p className="lede">
-        An agent asks in a sentence. The purse clerk allows it, holds it for a human, or says no.
-        PayPal moves the money only after the clerk agrees. This demo needs no sandbox key.
+        Each agent has its own allowance and API key. PayPal is linked once, then a merchant-initiated charge
+        pays the store. AgentPurse never holds the money.
       </p>
       <section className="steps">
         <article className="panel">
-          <p className="eyebrow">1 · Propose</p>
-          <h2>The agent writes a sentence.</h2>
-          <p className="muted">A parser reads the merchant, the amount, and the category. It does not get a vote.</p>
+          <p className="eyebrow">1 · Link</p>
+          <h2>Vault PayPal without a purchase.</h2>
+          <p className="muted">A setup token becomes a payment token. Later charges use that vault id.</p>
         </article>
         <article className="panel">
-          <p className="eyebrow">2 · Dispose</p>
-          <h2>The clerk applies the rules.</h2>
-          <p className="muted">Envelopes, caps, the denylist, the balance, and an approval line. Ordinary code.</p>
+          <p className="eyebrow">2 · Ask</p>
+          <h2>The clerk still decides.</h2>
+          <p className="muted">Allowances, caps, and the denylist are code. A model cannot waive them.</p>
         </article>
         <article className="panel">
-          <p className="eyebrow">3 · Settle</p>
-          <h2>PayPal captures the order.</h2>
-          <p className="muted">Create, buyer approval, capture. In mock mode the whole path stays on this machine.</p>
+          <p className="eyebrow">3 · Pay the merchant</p>
+          <h2>Orders v2, then a receipt.</h2>
+          <p className="muted">The charge names the merchant as payee. The intent id rides in custom_id.</p>
         </article>
       </section>
       <section className="panel">
-        <h2 style={{ marginTop: 0 }}>Purses</h2>
-        {purses.length === 0 ? (
-          <p>No purses yet. Run <code>npm run seed</code> and reload.</p>
+        <h2 style={{ marginTop: 0 }}>Households</h2>
+        {households.length === 0 ? (
+          <p>No household yet. Run <code>npm run seed</code> and reload.</p>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Purse</th>
-                <th>Owner</th>
-                <th className="num">Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purses.map((purse) => (
-                <tr key={purse.id}>
-                  <td>
-                    <Link href={`/purses/${purse.id}`}>{purse.name}</Link>
-                  </td>
-                  <td>{purse.ownerName}</td>
-                  <td className="num money">{formatMoney(purse.balanceCents, purse.currency)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul>
+            {households.map((owner) => (
+              <li key={owner.id}>
+                <Link href={`/purses/${owner.id}`}>{owner.name}</Link>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </main>

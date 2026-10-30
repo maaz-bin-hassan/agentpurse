@@ -1,49 +1,44 @@
-import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { countOwners } from "@/src/db/repository";
 import { migrate } from "@/src/db/schema";
-import { countPurses } from "@/src/db/repository";
 import { seedDemo } from "@/src/db/seed";
+import { openPostgres, openSqlite, type Sql } from "@/src/db/sql";
 
-export type PurseDb = DatabaseSync;
+type Cache = { sql: Sql; key: string };
 
-type Cache = { db: PurseDb; filename: string };
-
-const globalForDb = globalThis as unknown as { agentpurse?: Cache };
+const globalForDb = globalThis as unknown as { agentpurseSql?: Cache };
 
 export function databasePath(env: NodeJS.ProcessEnv = process.env): string {
   return env.AGENTPURSE_DB ?? path.join(process.cwd(), "data", "agentpurse.db");
 }
 
-export function openDatabase(filename: string): PurseDb {
-  if (filename !== ":memory:") {
-    fs.mkdirSync(path.dirname(path.resolve(filename)), { recursive: true });
-  }
-  const db = new DatabaseSync(filename);
-  db.exec("PRAGMA foreign_keys = ON;");
-  if (filename !== ":memory:") {
-    db.exec("PRAGMA journal_mode = WAL;");
-  }
-  migrate(db);
-  return db;
+export function databaseKey(env: NodeJS.ProcessEnv = process.env): string {
+  return env.DATABASE_URL ? `pg:${env.DATABASE_URL}` : `sqlite:${databasePath(env)}`;
 }
 
-export function getDb(env: NodeJS.ProcessEnv = process.env): PurseDb {
-  const filename = databasePath(env);
-  if (globalForDb.agentpurse && globalForDb.agentpurse.filename !== filename) {
-    closeDb();
+export async function openDatabase(filename = ":memory:"): Promise<Sql> {
+  const sql = openSqlite(filename);
+  await migrate(sql);
+  return sql;
+}
+
+export async function getDb(env: NodeJS.ProcessEnv = process.env): Promise<Sql> {
+  const key = databaseKey(env);
+  if (globalForDb.agentpurseSql && globalForDb.agentpurseSql.key !== key) {
+    await closeDb();
   }
-  if (!globalForDb.agentpurse) {
-    const db = openDatabase(filename);
-    if (env.AGENTPURSE_AUTO_SEED !== "0" && countPurses(db) === 0) {
-      seedDemo(db);
+  if (!globalForDb.agentpurseSql) {
+    const sql = env.DATABASE_URL ? await openPostgres(env.DATABASE_URL) : openSqlite(databasePath(env));
+    await migrate(sql);
+    if (env.AGENTPURSE_AUTO_SEED !== "0" && (await countOwners(sql)) === 0) {
+      await seedDemo(sql);
     }
-    globalForDb.agentpurse = { db, filename };
+    globalForDb.agentpurseSql = { sql, key };
   }
-  return globalForDb.agentpurse.db;
+  return globalForDb.agentpurseSql.sql;
 }
 
-export function closeDb(): void {
-  globalForDb.agentpurse?.db.close();
-  globalForDb.agentpurse = undefined;
+export async function closeDb(): Promise<void> {
+  await globalForDb.agentpurseSql?.sql.close();
+  globalForDb.agentpurseSql = undefined;
 }

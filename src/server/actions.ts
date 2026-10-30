@@ -1,31 +1,42 @@
-import { randomBytes } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
+import type { AppEnv } from "@/src/config";
 import { parseSpendIntent } from "@/src/ai/intent";
+import { merchantPayee } from "@/src/domain/payee";
 import { formatMoney } from "@/src/domain/money";
-import type { Agent, Envelope, Merchant, Purse, SpendRequest } from "@/src/domain/types";
+import { periodStart } from "@/src/domain/period";
+import type { Agent, IntentRecord, Merchant, Owner, Vault } from "@/src/domain/types";
 import {
-  dailySpentCents,
-  decideApproval,
-  envelopeSpentCents,
+  addAllowance,
   findMerchantByName,
   getAgent,
-  getPurse,
-  getSpend,
+  getIntent,
+  getOwner,
+  getVault,
   insertApproval,
   insertAudit,
-  insertSpend,
+  insertIntent,
+  insertNotification,
+  insertReceipt,
   latestApproval,
-  listEnvelopes,
   listMerchants,
-  setBalance,
-  updateSpend,
-  getPaypalOrder,
+  markApproval,
+  netSpentCents,
+  newId,
+  receiptForCapture,
+  setAgentStatus,
+  setPanic,
+  spentSince,
+  updateIntent,
 } from "@/src/db/repository";
-import { transactionAsync } from "@/src/db/transaction";
-import { evaluateSpend, type ClerkInput, type ClerkResult } from "@/src/policy/engine";
-import type { AppEnv } from "@/src/config";
-import { createPayPalClient, PayPalError, type PayPalClient, type PaypalOrder } from "@/src/paypal";
+import type { Sql } from "@/src/db/sql";
+import { evaluateSpend, type ClerkResult } from "@/src/policy/engine";
+import { createPayPalClient, PayPalError, type PayPalClient, type PaypalOrder, type StoredCredential } from "@/src/paypal";
 import { fail, type ActionResult } from "@/src/server/http";
+
+const MIT: StoredCredential = {
+  payment_initiator: "MERCHANT",
+  usage: "SUBSEQUENT",
+  usage_pattern: "UNSCHEDULED_POSTPAID",
+};
 
 export interface ActionOptions {
   now?: Date;
@@ -33,538 +44,426 @@ export interface ActionOptions {
   paypal?: PayPalClient;
 }
 
-function nid(prefix: string): string {
-  return `${prefix}_${randomBytes(6).toString("hex")}`;
+function clientFor(sql: Sql, options?: ActionOptions): PayPalClient {
+  return options?.paypal ?? createPayPalClient(sql, options?.env ?? process.env);
 }
 
 function stamp(now: Date): string {
   return now.toISOString();
 }
 
-function clientFor(db: DatabaseSync, options?: ActionOptions): PayPalClient {
-  return options?.paypal ?? createPayPalClient(db, options?.env ?? process.env);
-}
-
 function captureIdOf(order: PaypalOrder): string | null {
   return order.purchase_units[0]?.payments?.captures?.[0]?.id ?? null;
 }
 
-function buildClerkInput(input: {
-  purse: Purse;
-  agent: Agent;
-  merchant: Merchant | undefined;
-  merchantName: string | null;
-  amountCents: number | null;
-  currency: string | null;
-  category: SpendRequest["category"];
-  envelope: Envelope | undefined;
-  envelopeSpent: number;
-  dailySpent: number;
-  intentComplete: boolean;
-  humanApproved?: boolean;
-}): ClerkInput {
-  return {
-    ownerName: input.purse.ownerName,
+async function clerkFor(
+  sql: Sql,
+  input: { owner: Owner; agent: Agent; vault: Vault | undefined; merchant: Merchant | undefined; merchantName: string | null; amountCents: number | null; currency: string | null; category: IntentRecord["category"]; intentComplete: boolean; now: Date; humanApproved?: boolean },
+): Promise<ClerkResult> {
+  const spent = await netSpentCents(sql, input.agent.id);
+  const daily = await spentSince(sql, input.agent.id, periodStart("daily", input.now));
+  return evaluateSpend({
+    ownerName: input.owner.name,
     agentName: input.agent.name,
     agentStatus: input.agent.status,
-    samePurse: input.agent.purseId === input.purse.id,
+    panicFrozen: input.owner.panicFrozen,
+    vaultReady: input.vault?.status === "vaulted" && Boolean(input.vault.paymentTokenId),
     intentComplete: input.intentComplete,
     amountCents: input.amountCents,
     currency: input.currency,
-    purseCurrency: input.purse.currency,
+    purseCurrency: "USD",
     merchantName: input.merchantName,
     merchantBlocked: input.merchant?.blocked ?? false,
     merchantTrusted: input.merchant ? input.merchant.trusted : false,
     category: input.category,
     categoryAllowed: input.category ? input.agent.allowedCategories.includes(input.category) : false,
-    envelope: input.envelope
-      ? {
-          name: input.envelope.name,
-          limitCents: input.envelope.limitCents,
-          spentCents: input.envelopeSpent,
-          period: input.envelope.period,
-        }
-      : null,
-    perTxnCapCents: input.purse.perTxnCapCents,
-    dailyCapCents: input.purse.dailyCapCents,
-    dailySpentCents: input.dailySpent,
-    balanceCents: input.purse.balanceCents,
-    approvalThresholdCents: input.purse.approvalThresholdCents,
+    perTxnCapCents: input.agent.perTxnCapCents,
+    dailyCapCents: input.agent.dailyCapCents,
+    dailySpentCents: daily,
+    allowanceRemainingCents: input.agent.allowanceCents - spent,
+    approvalThresholdCents: input.agent.approvalThresholdCents,
     humanApproved: input.humanApproved,
-  };
+  });
 }
 
-async function settleSpend(
-  db: DatabaseSync,
+async function settle(
+  sql: Sql,
   paypal: PayPalClient,
-  input: {
-    purseId: string;
-    spendId: string;
-    amountCents: number;
-    currency: string;
-    description: string;
-    explanation: string;
-    actor: string;
-    now: Date;
-    insert?: Parameters<typeof insertSpend>[1];
-    assertStillAllowed?: () => void;
-  },
+  input: { intent: IntentRecord; owner: Owner; agent: Agent; vault: Vault; explanation: string; now: Date; env?: AppEnv },
 ): Promise<PaypalOrder> {
-  let capturedOrder: PaypalOrder | null = null;
-  await transactionAsync(db, async () => {
-    input.assertStillAllowed?.();
-    const purse = getPurse(db, input.purseId);
-    if (!purse) throw new PayPalError("Unknown purse.", 404);
-    if (purse.balanceCents < input.amountCents) {
-      throw new PayPalError(`The purse has ${formatMoney(purse.balanceCents, purse.currency)} available.`, 409);
-    }
-    const created = await paypal.createOrder({
-      amountCents: input.amountCents,
-      currency: input.currency,
-      kind: "spend",
-      purseId: purse.id,
-      spendRequestId: input.spendId,
-      customId: input.spendId,
-      description: input.description,
-    });
-    const approved = await paypal.approveOrder(created.id);
-    const captured = await paypal.captureOrder(approved.id);
-    const captureId = captureIdOf(captured);
-    if (!captureId) throw new PayPalError("PayPal capture did not return a capture id.");
-    setBalance(db, purse.id, purse.balanceCents - input.amountCents);
-    const at = stamp(input.now);
-    if (input.insert) {
-      insertSpend(db, {
-        ...input.insert,
-        status: "captured",
-        decision: "allow",
-        explanation: input.explanation,
-        paypalOrderId: captured.id,
-        captureId,
-      });
-    } else {
-      updateSpend(db, input.spendId, {
-        status: "captured",
-        decision: "allow",
-        explanation: input.explanation,
-        paypalOrderId: captured.id,
-        captureId,
-        updatedAt: at,
-      });
-    }
-    insertAudit(db, {
-      id: nid("audit"),
-      purseId: purse.id,
-      actor: input.actor,
-      action: "spend_captured",
+  if (!input.vault.paymentTokenId || input.intent.amountCents == null || !input.intent.currency) {
+    throw new PayPalError("This intent cannot be charged.");
+  }
+  const created = await paypal.createOrder({
+    amountCents: input.intent.amountCents,
+    currency: input.intent.currency,
+    kind: "charge",
+    customId: input.intent.id,
+    intentId: input.intent.id,
+    ownerId: input.owner.id,
+    description: `${input.agent.name} pays ${input.intent.merchantName ?? "a merchant"}`,
+    payeeEmail: input.intent.merchantEmail ?? merchantPayee(input.env),
+    vaultId: input.vault.paymentTokenId,
+    storedCredential: MIT,
+  });
+  const captured = created.status === "COMPLETED" ? created : await paypal.captureOrder(created.id);
+  const captureId = captureIdOf(captured);
+  if (!captureId) throw new PayPalError("PayPal capture did not return a capture id.");
+  const at = stamp(input.now);
+  if (!(await receiptForCapture(sql, captureId, "capture"))) {
+    await insertReceipt(sql, {
+      id: newId("rcpt"),
+      intentId: input.intent.id,
+      agentId: input.agent.id,
+      ownerId: input.owner.id,
+      kind: "capture",
+      amountCents: input.intent.amountCents,
+      currency: input.intent.currency,
+      merchantName: input.intent.merchantName ?? "Merchant",
+      paypalOrderId: captured.id,
+      captureId,
+      refundId: null,
+      customId: input.intent.id,
+      webhookEventId: null,
       detail: input.explanation,
       createdAt: at,
     });
-    capturedOrder = captured;
-  });
-  if (!capturedOrder) throw new PayPalError("PayPal capture did not complete.");
-  return capturedOrder;
-}
-
-function recordDecision(
-  db: DatabaseSync,
-  spend: Parameters<typeof insertSpend>[1],
-  actor: string,
-  action: string,
-): void {
-  insertSpend(db, spend);
-  if (spend.status === "pending_approval") {
-    insertApproval(db, {
-      id: nid("approval"),
-      spendRequestId: spend.id,
-      decision: "pending",
-      note: null,
-      decidedAt: null,
-      createdAt: spend.createdAt,
-    });
   }
-  insertAudit(db, {
-    id: nid("audit"),
-    purseId: spend.purseId,
-    actor,
-    action,
-    detail: spend.explanation ?? spend.rawText,
-    createdAt: spend.createdAt,
+  await updateIntent(sql, input.intent.id, {
+    status: "captured",
+    decision: "allow",
+    explanation: input.explanation,
+    paypalOrderId: captured.id,
+    captureId,
+    approvalMethod: input.intent.approvalMethod ?? "auto",
+    updatedAt: at,
   });
+  await insertAudit(sql, {
+    id: newId("audit"),
+    ownerId: input.owner.id,
+    actor: input.agent.name.toLowerCase(),
+    action: "spend_captured",
+    detail: input.explanation,
+    createdAt: at,
+  });
+  return captured;
 }
 
-export async function submitSpend(
-  db: DatabaseSync,
+export async function requestPurchase(
+  sql: Sql,
   agentId: string,
   text: string,
-  options?: ActionOptions,
-): Promise<
-  ActionResult<
-    | { ok: true; explanation: string; spend: SpendRequest; order: PaypalOrder | null }
-    | { ok: false; error: string }
-  >
-> {
+  options?: ActionOptions & { originalTask?: string; pageExcerpt?: string | null },
+): Promise<ActionResult<{ ok: true; explanation: string; intent: IntentRecord; spend: IntentRecord; order: PaypalOrder | null } | { ok: false; error: string }>> {
   const now = options?.now ?? new Date();
   const trimmed = text.trim();
   if (!trimmed) return fail(400, "Write the payment in a sentence.");
-  const agent = getAgent(db, agentId);
+  const agent = await getAgent(sql, agentId);
   if (!agent) return fail(404, "Unknown agent.");
-  const purse = getPurse(db, agent.purseId);
-  if (!purse) return fail(404, "Unknown purse.");
-
-  const intent = await parseSpendIntent(trimmed, {
-    merchants: listMerchants(db),
-    env: options?.env ?? process.env,
+  const owner = await getOwner(sql, agent.ownerId);
+  if (!owner) return fail(404, "Unknown household.");
+  const vault = await getVault(sql, owner.id);
+  const intentParsed = await parseSpendIntent(trimmed, { merchants: await listMerchants(sql), env: options?.env ?? process.env });
+  const merchant = intentParsed.merchantName ? await findMerchantByName(sql, intentParsed.merchantName) : undefined;
+  const clerk = await clerkFor(sql, {
+    owner,
+    agent,
+    vault,
+    merchant,
+    merchantName: intentParsed.merchantName,
+    amountCents: intentParsed.amountCents,
+    currency: intentParsed.currency,
+    category: intentParsed.category,
+    intentComplete: intentParsed.complete,
+    now,
   });
-  const merchant = intent.merchantName ? findMerchantByName(db, intent.merchantName) : undefined;
-  const envelope = intent.category
-    ? listEnvelopes(db, purse.id).find((item) => item.category === intent.category)
-    : undefined;
-  const clerk = evaluateSpend(
-    buildClerkInput({
-      purse,
-      agent,
-      merchant,
-      merchantName: intent.merchantName,
-      amountCents: intent.amountCents,
-      currency: intent.currency,
-      category: intent.category,
-      envelope,
-      envelopeSpent: envelope ? envelopeSpentCents(db, envelope.id, envelope.period, now) : 0,
-      dailySpent: dailySpentCents(db, purse.id, now),
-      intentComplete: intent.complete,
-    }),
-  );
-
   const at = stamp(now);
-  const spendId = nid("spend");
+  const intentId = newId("intent");
   const draft = {
-    id: spendId,
-    purseId: purse.id,
+    id: intentId,
     agentId: agent.id,
-    envelopeId: envelope?.id ?? null,
+    ownerId: owner.id,
+    originalTask: options?.originalTask?.trim() || trimmed,
     rawText: trimmed,
-    merchantName: intent.merchantName,
-    amountCents: intent.amountCents,
-    currency: intent.currency,
-    category: intent.category,
-    purpose: intent.purpose,
-    confidence: intent.confidence,
+    pageExcerpt: options?.pageExcerpt ?? null,
+    merchantName: intentParsed.merchantName,
+    merchantEmail: merchant?.paypalEmail ?? merchantPayee(options?.env),
+    amountCents: intentParsed.amountCents,
+    currency: intentParsed.currency,
+    category: intentParsed.category,
+    purpose: intentParsed.purpose,
+    confidence: intentParsed.confidence,
+    guardDecision: "pass" as const,
+    guardReasons: [],
     decision: clerk.decision,
     decisionReasons: clerk.reasons,
     explanation: clerk.explanation,
     status: "denied" as const,
     paypalOrderId: null,
     captureId: null,
+    approvalMethod: clerk.decision === "allow" ? "auto" : null,
+    quoteId: null,
     createdAt: at,
     updatedAt: at,
   };
 
-  if (clerk.decision === "allow" && intent.amountCents != null && intent.currency) {
+  if (clerk.decision === "allow" && vault?.paymentTokenId && intentParsed.amountCents != null && intentParsed.currency) {
+    await insertIntent(sql, draft);
     try {
-      const order = await settleSpend(db, clientFor(db, options), {
-        purseId: purse.id,
-        spendId,
-        amountCents: intent.amountCents,
-        currency: intent.currency,
-        description: `${agent.name} pays ${intent.merchantName ?? "a merchant"}`,
+      const order = await settle(sql, clientFor(sql, options), {
+        intent: { ...draft, guardDecision: "pass" },
+        owner,
+        agent,
+        vault,
         explanation: clerk.explanation,
-        actor: agent.name.toLowerCase(),
         now,
-        insert: draft,
-        assertStillAllowed: () => {
-          const fresh = getPurse(db, purse.id);
-          if (!fresh) throw new PayPalError("Unknown purse.", 404);
-          const again = evaluateSpend(
-            buildClerkInput({
-              purse: fresh,
-              agent,
-              merchant,
-              merchantName: intent.merchantName,
-              amountCents: intent.amountCents,
-              currency: intent.currency,
-              category: intent.category,
-              envelope,
-              envelopeSpent: envelope ? envelopeSpentCents(db, envelope.id, envelope.period, now) : 0,
-              dailySpent: dailySpentCents(db, purse.id, now),
-              intentComplete: true,
-            }),
-          );
-          if (again.decision !== "allow") throw new PayPalError(`Still blocked. ${again.explanation}`, 409);
-        },
+        env: options?.env,
       });
-      const spend = getSpend(db, spendId);
-      if (!spend) return fail(500, "The payment was captured but not recorded.");
-      return { status: 200, body: { ok: true, explanation: spend.explanation ?? clerk.explanation, spend, order } };
+      const intent = await getIntent(sql, intentId);
+      if (!intent) return fail(500, "The payment was captured but not recorded.");
+      return { status: 200, body: { ok: true, explanation: intent.explanation ?? clerk.explanation, intent, spend: intent, order } };
     } catch (error) {
       if (error instanceof PayPalError) return fail(error.status, error.message);
       throw error;
     }
   }
 
-  const status =
-    clerk.decision === "deny"
-      ? "denied"
-      : clerk.decision === "needs_approval"
-        ? "pending_approval"
-        : "needs_clarification";
-  recordDecision(
-    db,
-    { ...draft, status },
-    clerk.decision === "deny" || clerk.decision === "needs_clarification" ? "clerk" : agent.name.toLowerCase(),
-    `spend_${status}`,
-  );
-  const spend = getSpend(db, spendId);
-  if (!spend) return fail(500, "The decision was not recorded.");
-  return { status: 200, body: { ok: true, explanation: clerk.explanation, spend, order: null } };
-}
-
-function recheck(db: DatabaseSync, spend: SpendRequest, now: Date, humanApproved: boolean): ClerkResult | null {
-  const agent = getAgent(db, spend.agentId);
-  const purse = getPurse(db, spend.purseId);
-  if (!agent || !purse || spend.amountCents == null || !spend.currency) return null;
-  const envelopes = listEnvelopes(db, purse.id);
-  const envelope = spend.envelopeId ? envelopes.find((item) => item.id === spend.envelopeId) : undefined;
-  const merchant = spend.merchantName ? findMerchantByName(db, spend.merchantName) : undefined;
-  return evaluateSpend(
-    buildClerkInput({
-      purse,
-      agent,
-      merchant,
-      merchantName: spend.merchantName,
-      amountCents: spend.amountCents,
-      currency: spend.currency,
-      category: spend.category,
-      envelope,
-      envelopeSpent: envelope ? envelopeSpentCents(db, envelope.id, envelope.period, now) : 0,
-      dailySpent: dailySpentCents(db, purse.id, now),
-      intentComplete: true,
-      humanApproved,
-    }),
-  );
-}
-
-export async function approveSpend(
-  db: DatabaseSync,
-  spendId: string,
-  note?: string,
-  options?: ActionOptions,
-): Promise<
-  ActionResult<
-    | { ok: true; explanation: string; spend: SpendRequest; order: PaypalOrder }
-    | { ok: false; error: string }
-  >
-> {
-  const now = options?.now ?? new Date();
-  const spend = getSpend(db, spendId);
-  if (!spend) return fail(404, "Unknown spend.");
-  if (spend.status !== "pending_approval") return fail(409, "That request is not waiting for approval.");
-  if (spend.amountCents == null || !spend.currency || !spend.merchantName) {
-    return fail(409, "That request is missing an amount or a merchant.");
-  }
-  const clerk = recheck(db, spend, now, true);
-  if (!clerk || clerk.decision !== "allow") {
-    return fail(409, `Still blocked. ${clerk?.explanation ?? "The clerk could not re-check this request."}`);
-  }
-  const agent = getAgent(db, spend.agentId);
-  try {
-    const order = await settleSpend(db, clientFor(db, options), {
-      purseId: spend.purseId,
-      spendId: spend.id,
-      amountCents: spend.amountCents,
-      currency: spend.currency,
-      description: `${agent?.name ?? "Agent"} pays ${spend.merchantName}`,
-      explanation: clerk.explanation,
-      actor: agent?.name.toLowerCase() ?? "agent",
-      now,
-      assertStillAllowed: () => {
-        const again = recheck(db, spend, now, true);
-        if (!again || again.decision !== "allow") {
-          throw new PayPalError(`Still blocked. ${again?.explanation ?? "The clerk could not re-check this request."}`, 409);
-        }
-      },
+  const status = clerk.decision === "needs_approval" ? "pending_approval" : clerk.decision === "needs_clarification" ? "needs_clarification" : "denied";
+  await insertIntent(sql, { ...draft, status });
+  if (status === "pending_approval") {
+    await insertApproval(sql, {
+      id: newId("approval"),
+      spendRequestId: intentId,
+      decision: "pending",
+      note: null,
+      decidedAt: null,
+      createdAt: at,
     });
-    const approval = latestApproval(db, spend.id);
-    if (approval) decideApproval(db, approval.id, "approved", note?.trim() || null, stamp(now));
-    const updated = getSpend(db, spend.id);
+    await insertNotification(sql, {
+      id: newId("note"),
+      ownerId: owner.id,
+      intentId,
+      title: `Approve ${draft.merchantName ?? "a payment"}?`,
+      body: clerk.explanation,
+      delivered: false,
+      createdAt: at,
+    });
+  }
+  await insertAudit(sql, {
+    id: newId("audit"),
+    ownerId: owner.id,
+    actor: status === "denied" ? "clerk" : agent.name.toLowerCase(),
+    action: `spend_${status}`,
+    detail: clerk.explanation,
+    createdAt: at,
+  });
+  const intent = await getIntent(sql, intentId);
+  if (!intent) return fail(500, "The decision was not recorded.");
+  return { status: 200, body: { ok: true, explanation: clerk.explanation, intent, spend: intent, order: null } };
+}
+
+export async function approveIntent(
+  sql: Sql,
+  intentId: string,
+  note?: string,
+  options?: ActionOptions & { method?: string; webauthnVerified?: boolean },
+): Promise<ActionResult<{ ok: true; explanation: string; intent: IntentRecord; spend: IntentRecord; order: PaypalOrder } | { ok: false; error: string }>> {
+  const now = options?.now ?? new Date();
+  const intent = await getIntent(sql, intentId);
+  if (!intent) return fail(404, "Unknown intent.");
+  if (intent.status !== "pending_approval") return fail(409, "That request is not waiting for approval.");
+  const agent = await getAgent(sql, intent.agentId);
+  const owner = agent ? await getOwner(sql, agent.ownerId) : undefined;
+  const vault = owner ? await getVault(sql, owner.id) : undefined;
+  if (!agent || !owner || !vault) return fail(404, "This intent is missing its household.");
+  const merchant = intent.merchantName ? await findMerchantByName(sql, intent.merchantName) : undefined;
+  const clerk = await clerkFor(sql, {
+    owner,
+    agent,
+    vault,
+    merchant,
+    merchantName: intent.merchantName,
+    amountCents: intent.amountCents,
+    currency: intent.currency,
+    category: intent.category,
+    intentComplete: true,
+    now,
+    humanApproved: true,
+  });
+  if (clerk.decision !== "allow") return fail(409, `Still blocked. ${clerk.explanation}`);
+  const approval = await latestApproval(sql, intent.id);
+  if (approval) {
+    await markApproval(sql, approval.id, "approved", note?.trim() || null, options?.method ?? "dashboard", Boolean(options?.webauthnVerified), stamp(now));
+  }
+  try {
+    const order = await settle(sql, clientFor(sql, options), {
+      intent: { ...intent, approvalMethod: options?.method ?? "dashboard" },
+      owner,
+      agent,
+      vault,
+      explanation: clerk.explanation,
+      now,
+      env: options?.env,
+    });
+    const updated = await getIntent(sql, intent.id);
     if (!updated) return fail(500, "The approval was not recorded.");
-    return { status: 200, body: { ok: true, explanation: updated.explanation ?? clerk.explanation, spend: updated, order } };
+    return { status: 200, body: { ok: true, explanation: updated.explanation ?? clerk.explanation, intent: updated, spend: updated, order } };
   } catch (error) {
     if (error instanceof PayPalError) return fail(error.status, error.message);
     throw error;
   }
 }
 
-export async function denySpend(
-  db: DatabaseSync,
-  spendId: string,
+export async function denyIntent(
+  sql: Sql,
+  intentId: string,
   note?: string,
   options?: ActionOptions,
-): Promise<ActionResult<{ ok: true; explanation: string; spend: SpendRequest } | { ok: false; error: string }>> {
+): Promise<ActionResult<{ ok: true; explanation: string; intent: IntentRecord; spend: IntentRecord } | { ok: false; error: string }>> {
   const now = options?.now ?? new Date();
-  const spend = getSpend(db, spendId);
-  if (!spend) return fail(404, "Unknown spend.");
-  if (spend.status !== "pending_approval") return fail(409, "That request is not waiting for approval.");
-  const purse = getPurse(db, spend.purseId);
+  const intent = await getIntent(sql, intentId);
+  if (!intent) return fail(404, "Unknown intent.");
+  if (intent.status !== "pending_approval") return fail(409, "That request is not waiting for approval.");
+  const owner = await getOwner(sql, intent.ownerId);
   const trimmed = note?.trim();
-  const explanation = trimmed
-    ? `${purse?.ownerName ?? "The owner"} denied the hold. ${trimmed}`
-    : `${purse?.ownerName ?? "The owner"} denied the hold.`;
+  const explanation = trimmed ? `${owner?.name ?? "The owner"} denied the hold. ${trimmed}` : `${owner?.name ?? "The owner"} denied the hold.`;
   const at = stamp(now);
-  updateSpend(db, spend.id, { status: "denied", decision: "deny", explanation, updatedAt: at });
-  const approval = latestApproval(db, spend.id);
-  if (approval) decideApproval(db, approval.id, "denied", trimmed || null, at);
-  insertAudit(db, {
-    id: nid("audit"),
-    purseId: spend.purseId,
-    actor: purse?.ownerName ?? "owner",
-    action: "spend_denied",
-    detail: explanation,
-    createdAt: at,
-  });
-  const updated = getSpend(db, spend.id);
+  await updateIntent(sql, intent.id, { status: "denied", decision: "deny", explanation, updatedAt: at });
+  const approval = await latestApproval(sql, intent.id);
+  if (approval) await markApproval(sql, approval.id, "denied", trimmed || null, "dashboard", false, at);
+  await insertAudit(sql, { id: newId("audit"), ownerId: intent.ownerId, actor: owner?.name ?? "owner", action: "spend_denied", detail: explanation, createdAt: at });
+  const updated = await getIntent(sql, intent.id);
   if (!updated) return fail(500, "The denial was not recorded.");
-  return { status: 200, body: { ok: true, explanation, spend: updated } };
+  return { status: 200, body: { ok: true, explanation, intent: updated, spend: updated } };
 }
 
-export async function refundSpend(
-  db: DatabaseSync,
-  spendId: string,
+export async function refundIntent(
+  sql: Sql,
+  intentId: string,
   options?: ActionOptions,
-): Promise<
-  ActionResult<
-    | { ok: true; explanation: string; spend: SpendRequest }
-    | { ok: false; error: string }
-  >
-> {
+): Promise<ActionResult<{ ok: true; explanation: string; intent: IntentRecord; spend: IntentRecord } | { ok: false; error: string }>> {
   const now = options?.now ?? new Date();
-  const spend = getSpend(db, spendId);
-  if (!spend) return fail(404, "Unknown spend.");
-  if (spend.status !== "captured" || !spend.captureId || spend.amountCents == null) {
+  const intent = await getIntent(sql, intentId);
+  if (!intent) return fail(404, "Unknown intent.");
+  if (intent.status !== "captured" || !intent.captureId || intent.amountCents == null) {
     return fail(409, "Only a captured payment can be refunded.");
   }
-  const paypal = clientFor(db, options);
   try {
-    const explanation = `Refunded ${formatMoney(spend.amountCents, spend.currency ?? "USD")} to the purse.`;
-    await transactionAsync(db, async () => {
-      await paypal.refundCapture(spend.captureId!, spend.amountCents!);
-      const purse = getPurse(db, spend.purseId);
-      if (!purse) throw new PayPalError("Unknown purse.", 404);
-      const at = stamp(now);
-      setBalance(db, purse.id, purse.balanceCents + spend.amountCents!);
-      updateSpend(db, spend.id, { status: "refunded", explanation, updatedAt: at });
-      insertAudit(db, {
-        id: nid("audit"),
-        purseId: purse.id,
-        actor: "paypal",
-        action: "spend_refunded",
+    const refund = await clientFor(sql, options).refundCapture(intent.captureId, intent.amountCents);
+    const explanation = `Refunded ${formatMoney(intent.amountCents, intent.currency ?? "USD")} to the payer's PayPal.`;
+    const at = stamp(now);
+    if (!(await receiptForCapture(sql, intent.captureId, "refund"))) {
+      await insertReceipt(sql, {
+        id: newId("rcpt"),
+        intentId: intent.id,
+        agentId: intent.agentId,
+        ownerId: intent.ownerId,
+        kind: "refund",
+        amountCents: intent.amountCents,
+        currency: intent.currency ?? "USD",
+        merchantName: intent.merchantName ?? "Merchant",
+        paypalOrderId: intent.paypalOrderId,
+        captureId: intent.captureId,
+        refundId: refund.id,
+        customId: intent.id,
+        webhookEventId: null,
         detail: explanation,
         createdAt: at,
       });
-    });
-    const updated = getSpend(db, spend.id);
+    }
+    await updateIntent(sql, intent.id, { status: "refunded", explanation, updatedAt: at });
+    await insertAudit(sql, { id: newId("audit"), ownerId: intent.ownerId, actor: "paypal", action: "spend_refunded", detail: explanation, createdAt: at });
+    const updated = await getIntent(sql, intent.id);
     if (!updated) return fail(500, "The refund was not recorded.");
-    return { status: 200, body: { ok: true, explanation, spend: updated } };
+    return { status: 200, body: { ok: true, explanation, intent: updated, spend: updated } };
   } catch (error) {
     if (error instanceof PayPalError) return fail(error.status, error.message);
     throw error;
   }
 }
 
-export async function createTopup(
-  db: DatabaseSync,
-  purseId: string,
+export async function raiseAllowance(
+  sql: Sql,
+  agentId: string,
   amountCents: number,
   options?: ActionOptions,
-): Promise<ActionResult<{ ok: true; order: PaypalOrder } | { ok: false; error: string }>> {
-  const purse = getPurse(db, purseId);
-  if (!purse) return fail(404, "Unknown purse.");
-  if (!Number.isInteger(amountCents) || amountCents <= 0) {
-    return fail(400, "Enter a top-up amount in cents.");
-  }
-  try {
-    const order = await clientFor(db, options).createOrder({
-      amountCents,
-      currency: purse.currency,
-      kind: "topup",
-      purseId: purse.id,
-      customId: purse.id,
-      description: `Fund ${purse.name}`,
-    });
-    insertAudit(db, {
-      id: nid("audit"),
-      purseId: purse.id,
-      actor: "paypal",
-      action: "topup_created",
-      detail: `Created PayPal order ${order.id} for ${formatMoney(amountCents, purse.currency)}.`,
-      createdAt: stamp(options?.now ?? new Date()),
-    });
-    return { status: 201, body: { ok: true, order } };
-  } catch (error) {
-    if (error instanceof PayPalError) return fail(error.status, error.message);
-    throw error;
-  }
+): Promise<ActionResult<{ ok: true; allowanceCents: number } | { ok: false; error: string }>> {
+  if (!Number.isInteger(amountCents) || amountCents <= 0) return fail(400, "Enter an allowance in cents.");
+  const agent = await getAgent(sql, agentId);
+  if (!agent) return fail(404, "Unknown agent.");
+  await addAllowance(sql, agentId, amountCents);
+  const updated = await getAgent(sql, agentId);
+  await insertAudit(sql, {
+    id: newId("audit"),
+    ownerId: agent.ownerId,
+    actor: "owner",
+    action: "allowance_raised",
+    detail: `Raised ${agent.name}'s allowance by ${formatMoney(amountCents)}. This is a ledger cap, not a PayPal balance.`,
+    createdAt: stamp(options?.now ?? new Date()),
+  });
+  return { status: 200, body: { ok: true, allowanceCents: updated?.allowanceCents ?? agent.allowanceCents + amountCents } };
 }
 
-export async function approvePaypalOrder(
-  db: DatabaseSync,
-  orderId: string,
-  options?: ActionOptions,
-): Promise<ActionResult<{ ok: true; order: PaypalOrder } | { ok: false; error: string }>> {
-  const record = getPaypalOrder(db, orderId);
-  if (!record) return fail(404, "Unknown PayPal order.");
-  try {
-    const order = await clientFor(db, options).approveOrder(orderId);
-    if (record.purseId) {
-      insertAudit(db, {
-        id: nid("audit"),
-        purseId: record.purseId,
-        actor: "paypal",
-        action: "order_approved",
-        detail: `Buyer approved PayPal order ${order.id}.`,
-        createdAt: stamp(options?.now ?? new Date()),
-      });
-    }
-    return { status: 200, body: { ok: true, order } };
-  } catch (error) {
-    if (error instanceof PayPalError) return fail(error.status, error.message);
-    throw error;
-  }
+export async function pauseAgent(sql: Sql, agentId: string, paused: boolean): Promise<ActionResult<{ ok: true } | { ok: false; error: string }>> {
+  const agent = await getAgent(sql, agentId);
+  if (!agent) return fail(404, "Unknown agent.");
+  await setAgentStatus(sql, agentId, paused ? "paused" : "active");
+  await insertAudit(sql, {
+    id: newId("audit"),
+    ownerId: agent.ownerId,
+    actor: "owner",
+    action: paused ? "agent_paused" : "agent_resumed",
+    detail: paused ? `${agent.name} is paused.` : `${agent.name} can pay again.`,
+    createdAt: new Date().toISOString(),
+  });
+  return { status: 200, body: { ok: true } };
 }
 
-export async function captureTopup(
-  db: DatabaseSync,
-  orderId: string,
+export async function panicFreeze(
+  sql: Sql,
+  ownerId: string,
+  frozen: boolean,
+): Promise<ActionResult<{ ok: true } | { ok: false; error: string }>> {
+  const owner = await getOwner(sql, ownerId);
+  if (!owner) return fail(404, "Unknown household.");
+  await setPanic(sql, ownerId, frozen);
+  await insertAudit(sql, {
+    id: newId("audit"),
+    ownerId,
+    actor: owner.name,
+    action: frozen ? "panic_freeze" : "panic_cleared",
+    detail: frozen ? "Panic freeze is on. No agent can pay." : "Panic freeze is off.",
+    createdAt: new Date().toISOString(),
+  });
+  return { status: 200, body: { ok: true } };
+}
+
+export async function revokeVault(
+  sql: Sql,
+  ownerId: string,
   options?: ActionOptions,
-): Promise<
-  ActionResult<{ ok: true; order: PaypalOrder; balanceCents: number } | { ok: false; error: string }>
-> {
-  const record = getPaypalOrder(db, orderId);
-  if (!record) return fail(404, "Unknown PayPal order.");
-  if (record.kind !== "topup" || !record.purseId) {
-    return fail(400, "Only purse top-ups are captured from this route.");
-  }
+): Promise<ActionResult<{ ok: true } | { ok: false; error: string }>> {
+  const owner = await getOwner(sql, ownerId);
+  const vault = await getVault(sql, ownerId);
+  if (!owner || !vault?.paymentTokenId) return fail(404, "No PayPal wallet is linked.");
   try {
-    let order: PaypalOrder | null = null;
-    await transactionAsync(db, async () => {
-      order = await clientFor(db, options).captureOrder(orderId);
-      const purse = getPurse(db, record.purseId!);
-      if (!purse) throw new PayPalError("Unknown purse.", 404);
-      setBalance(db, purse.id, purse.balanceCents + record.amountCents);
-      insertAudit(db, {
-        id: nid("audit"),
-        purseId: purse.id,
-        actor: "paypal",
-        action: "topup_captured",
-        detail: `Captured PayPal order ${orderId} for ${formatMoney(record.amountCents, record.currency)}. Purse balance funded.`,
-        createdAt: stamp(options?.now ?? new Date()),
-      });
-    });
-    const purse = getPurse(db, record.purseId);
-    if (!order || !purse) return fail(500, "The top-up was not recorded.");
-    return { status: 200, body: { ok: true, order, balanceCents: purse.balanceCents } };
+    await clientFor(sql, options).deletePaymentToken(vault.paymentTokenId);
   } catch (error) {
-    if (error instanceof PayPalError) return fail(error.status, error.message);
-    throw error;
+    if (error instanceof PayPalError && error.status !== 404) return fail(error.status, error.message);
   }
+  await saveVaultRevoked(sql, vault);
+  await insertAudit(sql, {
+    id: newId("audit"),
+    ownerId,
+    actor: owner.name,
+    action: "vault_revoked",
+    detail: `Deleted PayPal payment token ${vault.paymentTokenId}.`,
+    createdAt: new Date().toISOString(),
+  });
+  return { status: 200, body: { ok: true } };
+}
+
+async function saveVaultRevoked(sql: Sql, vault: Vault): Promise<void> {
+  const { saveVault } = await import("@/src/db/repository");
+  await saveVault(sql, { ...vault, status: "revoked", paymentTokenId: null, updatedAt: new Date().toISOString() });
 }

@@ -1,139 +1,177 @@
 import { describe, expect, it, vi } from "vitest";
 import { openDatabase } from "@/src/db/connection";
-import { createMockPayPal } from "@/src/paypal/mock";
+import { createMockPayPal, signMockWebhook } from "@/src/paypal/mock";
 import { createLivePayPal } from "@/src/paypal/live";
 import { PayPalError } from "@/src/paypal/types";
+import { DEMO_PAYEE } from "@/src/domain/payee";
 
 describe("PayPal mock", () => {
-  it("walks a top-up from created to captured and refunds the capture", async () => {
-    const db = openDatabase(":memory:");
+  it("vaults a wallet without a purchase, charges the merchant, and refunds", async () => {
+    const sql = await openDatabase(":memory:");
     let tick = 0;
-    const paypal = createMockPayPal(db, {
+    const paypal = createMockPayPal(sql, {
       now: () => new Date(Date.UTC(2026, 9, 30, 12, tick++, 0)),
       id: (prefix) => `${prefix}TEST`,
     });
-
-    const created = await paypal.createOrder({
-      amountCents: 10000,
-      currency: "USD",
-      kind: "topup",
-      description: "Fund Maya's Household",
+    const setup = await paypal.createSetupToken({
+      ownerId: "purse_maya",
+      returnUrl: "http://localhost:3000/paypal/return",
+      cancelUrl: "http://localhost:3000/paypal/cancel",
+      description: "AgentPurse",
     });
-    expect(created.status).toBe("CREATED");
-    expect(created.id).toBe("PAY-MOCK-TEST");
-    expect(created.purchase_units[0].amount.value).toBe("100.00");
-    expect(created.links[0].href).toContain("sandbox.paypal.com");
-
-    await expect(paypal.captureOrder(created.id)).rejects.toBeInstanceOf(PayPalError);
-
-    const approved = await paypal.approveOrder(created.id);
+    expect(setup.status).toBe("PAYER_ACTION_REQUIRED");
+    expect(setup.links[0]?.href).toContain("sandbox.paypal.com");
+    const approved = await paypal.approveSetupToken(setup.id);
     expect(approved.status).toBe("APPROVED");
-    const captured = await paypal.captureOrder(approved.id);
-    expect(captured.status).toBe("COMPLETED");
-    expect(captured.purchase_units[0].payments?.captures?.[0].id).toBe("CAP-MOCK-TEST");
-    await expect(paypal.captureOrder(captured.id)).rejects.toThrow(/already captured/);
+    const payment = await paypal.createPaymentToken(setup.id);
+    expect(payment.id).toBe("VAULT-MOCK-TEST");
 
-    const refund = await paypal.refundCapture("CAP-MOCK-TEST");
+    const order = await paypal.createOrder({
+      amountCents: 1840,
+      currency: "USD",
+      kind: "charge",
+      customId: "intent_oats",
+      intentId: "intent_oats",
+      payeeEmail: DEMO_PAYEE,
+      vaultId: payment.id,
+      storedCredential: {
+        payment_initiator: "MERCHANT",
+        usage: "SUBSEQUENT",
+        usage_pattern: "UNSCHEDULED_POSTPAID",
+      },
+    });
+    expect(order.status).toBe("APPROVED");
+    expect(order.purchase_units[0]?.custom_id).toBe("intent_oats");
+    expect(order.purchase_units[0]?.payee?.email_address).toBe(DEMO_PAYEE);
+    expect(order.payment_source?.paypal?.vault_id).toBe(payment.id);
+    expect(order.payment_source?.paypal?.stored_credential?.payment_initiator).toBe("MERCHANT");
+    const captured = await paypal.captureOrder(order.id);
+    expect(captured.status).toBe("COMPLETED");
+    const refund = await paypal.refundCapture(captured.purchase_units[0].payments!.captures![0].id);
     expect(refund.status).toBe("COMPLETED");
-    expect(refund.amount.value).toBe("100.00");
-    const after = await paypal.getOrder(created.id);
-    expect(after.purchase_units[0].payments?.captures?.[0].status).toBe("REFUNDED");
-    await expect(paypal.refundCapture("CAP-MOCK-TEST")).rejects.toThrow(/cannot be refunded/);
-    db.close();
+
+    await paypal.deletePaymentToken(payment.id);
+    await expect(
+      paypal.createOrder({
+        amountCents: 100,
+        currency: "USD",
+        kind: "charge",
+        vaultId: payment.id,
+        storedCredential: { payment_initiator: "MERCHANT", usage: "SUBSEQUENT", usage_pattern: "UNSCHEDULED_POSTPAID" },
+      }),
+    ).rejects.toBeInstanceOf(PayPalError);
+
+    const raw = JSON.stringify({ event_type: "PAYMENT.CAPTURE.COMPLETED", id: "WH-1" });
+    const sig = signMockWebhook({
+      transmissionId: "tx",
+      transmissionTime: "2026-10-30T12:00:00Z",
+      webhookId: "WHID",
+      rawBody: raw,
+    });
+    expect(
+      await paypal.verifyWebhookSignature({
+        transmissionId: "tx",
+        transmissionTime: "2026-10-30T12:00:00Z",
+        transmissionSig: sig,
+        certUrl: "https://api.sandbox.paypal.com/cert",
+        authAlgo: "SHA256withRSA",
+        webhookId: "WHID",
+        rawBody: raw,
+        event: JSON.parse(raw),
+      }),
+    ).toBe(true);
+    expect(
+      await paypal.verifyWebhookSignature({
+        transmissionId: "tx",
+        transmissionTime: "2026-10-30T12:00:00Z",
+        transmissionSig: "nope",
+        certUrl: "https://api.sandbox.paypal.com/cert",
+        authAlgo: "SHA256withRSA",
+        webhookId: "WHID",
+        rawBody: raw,
+        event: JSON.parse(raw),
+      }),
+    ).toBe(false);
+    await sql.close();
   });
 });
 
 describe("PayPal live adapter", () => {
-  it("builds OAuth and Orders v2 requests without calling the network", async () => {
+  it("builds vault, order, and webhook verification requests", async () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
       calls.push({ url, init });
       if (url.endsWith("/v1/oauth2/token")) {
         return new Response(JSON.stringify({ access_token: "tok_test", expires_in: 3600 }), { status: 200 });
       }
+      if (url.endsWith("/v3/vault/setup-tokens") && init?.method === "POST") {
+        return new Response(JSON.stringify({ id: "SETUP1", status: "PAYER_ACTION_REQUIRED", links: [] }), { status: 201 });
+      }
+      if (url.endsWith("/v3/vault/payment-tokens") && init?.method === "POST") {
+        return new Response(JSON.stringify({ id: "VAULT1", customer: { id: "CUST1" } }), { status: 201 });
+      }
+      if (url.includes("/v3/vault/payment-tokens/VAULT1") && init?.method === "DELETE") {
+        return new Response(null, { status: 204 });
+      }
       if (url.endsWith("/v2/checkout/orders") && init?.method === "POST") {
-        return new Response(
-          JSON.stringify({
-            id: "ORDER1",
-            status: "CREATED",
-            intent: "CAPTURE",
-            purchase_units: [{ amount: { currency_code: "USD", value: "10.00" } }],
-            links: [{ href: "https://www.sandbox.paypal.com/checkoutnow?token=ORDER1", rel: "approve", method: "GET" }],
-            create_time: "2026-10-30T00:00:00Z",
-            update_time: "2026-10-30T00:00:00Z",
-          }),
-          { status: 201 },
-        );
-      }
-      if (url.endsWith("/v2/checkout/orders/ORDER1") && (!init?.method || init.method === "GET")) {
-        return new Response(
-          JSON.stringify({
-            id: "ORDER1",
-            status: "CREATED",
-            intent: "CAPTURE",
-            purchase_units: [{ amount: { currency_code: "USD", value: "10.00" } }],
-            links: [{ href: "https://www.sandbox.paypal.com/checkoutnow?token=ORDER1", rel: "approve", method: "GET" }],
-            create_time: "2026-10-30T00:00:00Z",
-            update_time: "2026-10-30T00:00:00Z",
-          }),
-          { status: 200 },
-        );
-      }
-      if (url.endsWith("/capture")) {
         return new Response(
           JSON.stringify({
             id: "ORDER1",
             status: "COMPLETED",
             intent: "CAPTURE",
-            purchase_units: [
-              {
-                amount: { currency_code: "USD", value: "10.00" },
-                payments: { captures: [{ id: "CAP1", status: "COMPLETED", amount: { currency_code: "USD", value: "10.00" } }] },
-              },
-            ],
+            purchase_units: [{ amount: { currency_code: "USD", value: "10.00" }, custom_id: "intent_1" }],
             links: [],
             create_time: "2026-10-30T00:00:00Z",
-            update_time: "2026-10-30T00:01:00Z",
+            update_time: "2026-10-30T00:00:00Z",
           }),
           { status: 201 },
         );
       }
+      if (url.endsWith("/v1/notifications/verify-webhook-signature")) {
+        return new Response(JSON.stringify({ verification_status: "SUCCESS" }), { status: 200 });
+      }
       return new Response("missing", { status: 404 });
     });
-
-    const paypal = createLivePayPal({
-      clientId: "client",
-      clientSecret: "secret",
-      fetchImpl: fetchImpl as unknown as typeof fetch,
+    const paypal = createLivePayPal({ clientId: "client", clientSecret: "secret", fetchImpl: fetchImpl as unknown as typeof fetch });
+    const setup = await paypal.createSetupToken({
+      ownerId: "purse_maya",
+      returnUrl: "https://example.com/return",
+      cancelUrl: "https://example.com/cancel",
+      description: "AgentPurse",
     });
-
-    const created = await paypal.createOrder({
+    expect(setup.id).toBe("SETUP1");
+    const token = await paypal.createPaymentToken("SETUP1");
+    expect(token.id).toBe("VAULT1");
+    const order = await paypal.createOrder({
       amountCents: 1000,
       currency: "USD",
-      kind: "spend",
-      customId: "spend_1",
-      description: "Grocer",
+      kind: "charge",
+      customId: "intent_1",
+      payeeEmail: "sb-merchant@business.example.com",
+      vaultId: "VAULT1",
+      storedCredential: { payment_initiator: "MERCHANT", usage: "SUBSEQUENT", usage_pattern: "UNSCHEDULED_POSTPAID" },
     });
-    expect(created.id).toBe("ORDER1");
-
-    const auth = calls[0];
-    expect(auth.url).toBe("https://api-m.sandbox.paypal.com/v1/oauth2/token");
-    expect(String(auth.init?.headers && (auth.init.headers as Record<string, string>).Authorization)).toMatch(/^Basic /);
-    expect(auth.init?.body?.toString()).toContain("grant_type=client_credentials");
-
-    const orderCall = calls[1];
-    expect(orderCall.url).toBe("https://api-m.sandbox.paypal.com/v2/checkout/orders");
-    const headers = orderCall.init?.headers as Headers;
-    expect(headers.get("Authorization")).toBe("Bearer tok_test");
-    expect(headers.get("PayPal-Request-Id")).toBeTruthy();
-    expect(JSON.parse(String(orderCall.init?.body))).toMatchObject({
-      intent: "CAPTURE",
-      purchase_units: [{ amount: { currency_code: "USD", value: "10.00" }, custom_id: "spend_1" }],
+    expect(order.id).toBe("ORDER1");
+    const orderCall = calls.find((call) => call.url.endsWith("/v2/checkout/orders"));
+    const body = JSON.parse(String(orderCall?.init?.body));
+    expect(body.purchase_units[0].custom_id).toBe("intent_1");
+    expect(body.purchase_units[0].payee.email_address).toBe("sb-merchant@business.example.com");
+    expect(body.payment_source.paypal.vault_id).toBe("VAULT1");
+    expect(body.payment_source.paypal.stored_credential.payment_initiator).toBe("MERCHANT");
+    await paypal.deletePaymentToken("VAULT1");
+    expect(calls.some((call) => call.url.endsWith("/v3/vault/payment-tokens/VAULT1") && call.init?.method === "DELETE")).toBe(true);
+    const verified = await paypal.verifyWebhookSignature({
+      transmissionId: "tx",
+      transmissionTime: "time",
+      transmissionSig: "sig",
+      certUrl: "https://api.sandbox.paypal.com/v1/notifications/certs/CERT",
+      authAlgo: "SHA256withRSA",
+      webhookId: "WHID",
+      rawBody: "{}",
+      event: { id: "evt" },
     });
-
-    await expect(paypal.approveOrder("ORDER1")).rejects.toThrow(/Buyer approval happens at PayPal/);
-    const captured = await paypal.captureOrder("ORDER1");
-    expect(captured.status).toBe("COMPLETED");
-    expect(calls.some((call) => call.url.endsWith("/v2/checkout/orders/ORDER1/capture"))).toBe(true);
+    expect(verified).toBe(true);
+    const verifyCall = calls.find((call) => call.url.endsWith("/verify-webhook-signature"));
+    expect(JSON.parse(String(verifyCall?.init?.body)).webhook_id).toBe("WHID");
   });
 });
