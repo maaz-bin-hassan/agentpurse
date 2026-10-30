@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import { Fraunces, Public_Sans } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const display = Fraunces({
+const sans = Geist({
   subsets: ["latin"],
-  variable: "--font-display",
-  axes: ["SOFT", "WONK", "opsz"],
+  variable: "--font-geist",
 });
 
-const sans = Public_Sans({
+const mono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -21,16 +20,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}",
+              "try{if(localStorage.getItem('theme')==='light')document.documentElement.classList.remove('dark')}catch(e){}",
           }}
         />
       </head>
-      <body className={`${display.variable} ${sans.variable}`}>{children}</body>
+      <body className={`${sans.variable} ${mono.variable} ${sans.className}`}>{children}</body>
     </html>
   );
 }

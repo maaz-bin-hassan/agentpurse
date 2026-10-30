@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { applyMigrations } from "@/src/db/migrations";
 import type { Sql } from "@/src/db/sql";
 
 export function loadSchemaSql(): string {
@@ -19,11 +20,5 @@ export async function migrate(sql: Sql): Promise<void> {
       await sql.exec("PRAGMA foreign_keys = ON");
     }
   }
-  const statements = loadSchemaSql()
-    .split(";")
-    .map((statement) => statement.trim())
-    .filter((statement) => statement.replace(/--[^\n]*/g, "").trim().length > 0);
-  for (const statement of statements) {
-    await sql.exec(statement);
-  }
+  await applyMigrations(sql);
 }

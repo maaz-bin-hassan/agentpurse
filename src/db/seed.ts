@@ -1,3 +1,4 @@
+import { DEMO_KEYS } from "@/src/domain/demo-keys";
 import { DEMO_PAYEE } from "@/src/domain/payee";
 import { evaluateSpend } from "@/src/policy/engine";
 import {
@@ -15,12 +16,7 @@ import type { Sql } from "@/src/db/sql";
 
 export const DEMO_OWNER_ID = "purse_maya";
 
-export const DEMO_KEYS = {
-  agent_grocer: "agpk_grocer_demo_maya",
-  agent_wayfinder: "agpk_wayfinder_demo_maya",
-  agent_stack: "agpk_stack_demo_maya",
-  agent_handy: "agpk_handy_demo_maya",
-} as const;
+export { DEMO_KEYS };
 
 export const DEMO_VAULT_ID = "VAULT-MOCK-MAYA";
 
@@ -31,44 +27,61 @@ function daysBefore(now: Date, days: number, hours = 0): string {
   return copy.toISOString();
 }
 
-export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ownerId: string }> {
+export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boolean }): Promise<{ ownerId: string }> {
   const now = options?.now ?? new Date();
+  const preserve = options?.ifMissing === true;
   const createdAt = daysBefore(now, 3, 12);
   const softwareAt = daysBefore(now, 1, 16);
   const flightAt = daysBefore(now, 1, 18);
 
   await sql.transaction(async (tx) => {
-    await tx.exec("DELETE FROM approvals WHERE intent_id IN (SELECT id FROM intents WHERE owner_id = ?)", [DEMO_OWNER_ID]);
-    await tx.exec("DELETE FROM receipts WHERE owner_id = ?", [DEMO_OWNER_ID]);
-    await tx.exec("DELETE FROM paypal_orders WHERE owner_id = ?", [DEMO_OWNER_ID]);
-    await tx.exec("DELETE FROM quotes WHERE agent_id IN (SELECT id FROM agents WHERE owner_id = ?)", [DEMO_OWNER_ID]);
-    await tx.exec("DELETE FROM intents WHERE owner_id = ?", [DEMO_OWNER_ID]);
-    await tx.exec("DELETE FROM audit_events WHERE owner_id = ?", [DEMO_OWNER_ID]);
-    await tx.exec("DELETE FROM mock_payment_tokens WHERE id = ?", [DEMO_VAULT_ID]);
-    await tx.exec("DELETE FROM owners WHERE id = ?", [DEMO_OWNER_ID]);
-    await insertOwner(tx, {
+    const has = async (statement: string, id: string) => Boolean(await tx.get(statement, [id]));
+    if (!preserve) {
+      await tx.exec("DELETE FROM approvals WHERE intent_id IN (SELECT id FROM intents WHERE owner_id = ?)", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM receipts WHERE owner_id = ?", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM paypal_orders WHERE owner_id = ?", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM quotes WHERE agent_id IN (SELECT id FROM agents WHERE owner_id = ?)", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM intents WHERE owner_id = ?", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM audit_events WHERE owner_id = ?", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM mock_payment_tokens WHERE id = ?", [DEMO_VAULT_ID]);
+      await tx.exec("DELETE FROM owners WHERE id = ?", [DEMO_OWNER_ID]);
+    }
+    if (!(await has("SELECT id FROM owners WHERE id = ?", DEMO_OWNER_ID))) await insertOwner(tx, {
       id: DEMO_OWNER_ID,
       name: "Maya Chen",
       email: "maya@example.com",
       panicFrozen: false,
       createdAt,
     });
-    await saveVault(tx, {
-      id: "vault_maya",
-      ownerId: DEMO_OWNER_ID,
-      setupTokenId: "SETUP-MOCK-MAYA",
-      paymentTokenId: DEMO_VAULT_ID,
-      paypalCustomerId: "CUSTOMER-MOCK-MAYA",
-      payerEmail: "maya@example.com",
-      status: "vaulted",
-      createdAt,
-      updatedAt: createdAt,
-    });
-    await tx.exec(
-      `INSERT INTO mock_payment_tokens (id, setup_token_id, customer_id, payer_email, status, raw_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'ACTIVE', '{}', ?, ?)`,
-      [DEMO_VAULT_ID, "SETUP-MOCK-MAYA", "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
-    );
+    if (!(await has("SELECT id FROM vaults WHERE id = ?", "vault_maya"))) {
+      if (preserve) {
+        await tx.exec(
+          `INSERT INTO vaults (
+            id, owner_id, setup_token_id, payment_token_id, paypal_customer_id, payer_email, status, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'vaulted', ?, ?)`,
+          ["vault_maya", DEMO_OWNER_ID, "SETUP-MOCK-MAYA", DEMO_VAULT_ID, "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
+        );
+      } else {
+        await saveVault(tx, {
+          id: "vault_maya",
+          ownerId: DEMO_OWNER_ID,
+          setupTokenId: "SETUP-MOCK-MAYA",
+          paymentTokenId: DEMO_VAULT_ID,
+          paypalCustomerId: "CUSTOMER-MOCK-MAYA",
+          payerEmail: "maya@example.com",
+          status: "vaulted",
+          createdAt,
+          updatedAt: createdAt,
+        });
+      }
+    }
+    if (!(await has("SELECT id FROM mock_payment_tokens WHERE id = ?", DEMO_VAULT_ID))) {
+      await tx.exec(
+        `INSERT INTO mock_payment_tokens (id, setup_token_id, customer_id, payer_email, status, raw_json, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'ACTIVE', '{}', ?, ?)`,
+        [DEMO_VAULT_ID, "SETUP-MOCK-MAYA", "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
+      );
+    }
 
     const agents = [
       ["agent_grocer", "Grocer", "claude", "Buys food for the house.", DEMO_KEYS.agent_grocer, 8000, "groceries"],
@@ -77,6 +90,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ow
       ["agent_handy", "Handy", "mcp", "Replaces cables, chargers, and small gear.", DEMO_KEYS.agent_handy, 10000, "electronics"],
     ] as const;
     for (const [id, name, provider, description, apiKey, allowance, category] of agents) {
+      if (await has("SELECT id FROM agents WHERE id = ?", id)) continue;
       await insertAgent(
         tx,
         {
@@ -110,10 +124,11 @@ export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ow
       ["merch_lucky_chips", "Lucky Chips", "electronics", false, true],
     ] as const;
     for (const [id, name, category, trusted, blocked] of merchants) {
+      if (preserve && (await has("SELECT id FROM merchants WHERE lower(name) = lower(?)", name))) continue;
       await upsertMerchant(tx, { id, name, category, trusted, blocked, paypalEmail: DEMO_PAYEE });
     }
 
-    await insertReceipt(tx, {
+    if (!(await has("SELECT id FROM receipts WHERE id = ?", "rcpt_cloudapps"))) await insertReceipt(tx, {
       id: "rcpt_cloudapps",
       intentId: "intent_cloudapps",
       agentId: "agent_stack",
@@ -130,7 +145,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ow
       detail: "Paid CloudApps $12.00 from Stack's allowance.",
       createdAt: softwareAt,
     });
-    await insertIntent(tx, {
+    if (!(await has("SELECT id FROM intents WHERE id = ?", "intent_cloudapps"))) await insertIntent(tx, {
       id: "intent_cloudapps",
       agentId: "agent_stack",
       ownerId: DEMO_OWNER_ID,
@@ -157,7 +172,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ow
       createdAt: softwareAt,
       updatedAt: softwareAt,
     });
-    await upsertPaypalOrder(tx, {
+    if (!(await has("SELECT id FROM paypal_orders WHERE id = ?", "PAY-MOCK-CLOUD012"))) await upsertPaypalOrder(tx, {
       id: "PAY-MOCK-CLOUD012",
       ownerId: DEMO_OWNER_ID,
       intentId: "intent_cloudapps",
@@ -196,7 +211,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ow
       approvalThresholdCents: 5000,
     });
     if (flight.decision !== "deny") throw new Error("Demo flight must be denied");
-    await insertIntent(tx, {
+    if (!(await has("SELECT id FROM intents WHERE id = ?", "intent_skyair"))) await insertIntent(tx, {
       id: "intent_skyair",
       agentId: "agent_wayfinder",
       ownerId: DEMO_OWNER_ID,
@@ -223,7 +238,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ow
       createdAt: flightAt,
       updatedAt: flightAt,
     });
-    await insertAudit(tx, {
+    if (!(await has("SELECT id FROM audit_events WHERE id = ?", "audit_skyair"))) await insertAudit(tx, {
       id: "audit_skyair",
       ownerId: DEMO_OWNER_ID,
       actor: "clerk",

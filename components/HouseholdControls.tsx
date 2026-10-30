@@ -26,7 +26,7 @@ export function HouseholdControls({ ownerId, panic, vaultStatus }: { ownerId: st
   return (
     <div>
       <div className="actions">
-        <button className="btn" type="button" disabled={pending} onClick={() => void run(`/api/households/${ownerId}/panic`, { frozen: !panic })}>
+        <button className={panic ? "btn" : "btn panic"} type="button" disabled={pending} onClick={() => void run(`/api/households/${ownerId}/panic`, { frozen: !panic })}>
           {panic ? "Clear panic freeze" : "Panic freeze"}
         </button>
         <button className="btn secondary" type="button" disabled={pending || vaultStatus !== "vaulted"} onClick={() => void run(`/api/households/${ownerId}/revoke`)}>
