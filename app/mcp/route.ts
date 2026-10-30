@@ -1,5 +1,6 @@
 import { getDb } from "@/src/db/connection";
 import { actorFromBearer, allowedOrigin, handleMcpMessage } from "@/src/mcp/protocol";
+import { rateLimit } from "@/src/server/auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,12 +14,21 @@ function originDenied(request: Request): Response | null {
 }
 
 export async function GET(request: Request) {
+  const limited = rateLimit(request);
+  if (limited) return limited;
   const denied = originDenied(request);
   if (denied) return denied;
+  const sql = await getDb();
+  const actor = await actorFromBearer(sql, request.headers.get("authorization"));
+  if (!actor) {
+    return new Response("Unauthorized", { status: 401, headers: { "www-authenticate": 'Bearer realm="agentpurse"' } });
+  }
   return new Response("Streamable HTTP listening is not required. POST JSON-RPC to this URL.", { status: 405 });
 }
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request);
+  if (limited) return limited;
   const denied = originDenied(request);
   if (denied) return denied;
   const accept = request.headers.get("accept") ?? "";

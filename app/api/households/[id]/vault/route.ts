@@ -1,14 +1,16 @@
-import { getDb } from "@/src/db/connection";
 import { newId, saveVault } from "@/src/db/repository";
 import { createPayPalClient } from "@/src/paypal";
-import { asResponse, fail } from "@/src/server/http";
+import { isResponse, requireOwner } from "@/src/server/auth";
+import { asResponse } from "@/src/server/http";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const sql = await getDb();
+  const gate = await requireOwner(request, id);
+  if (isResponse(gate)) return gate;
+  const { sql } = gate;
   const paypal = createPayPalClient(sql);
   const origin = new URL(request.url).origin;
   const setup = await paypal.createSetupToken({
@@ -17,6 +19,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     returnUrl: `${origin}/purses/${id}`,
     cancelUrl: `${origin}/purses/${id}`,
   });
+  const now = new Date().toISOString();
   if (paypal.mode === "live") {
     await saveVault(sql, {
       id: newId("vault"),
@@ -26,15 +29,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       paypalCustomerId: setup.customerId ?? null,
       payerEmail: null,
       status: "payer_action_required",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     });
     const approve = setup.links.find((link) => link.rel === "approve")?.href ?? "";
     return Response.json({ ok: true, explanation: "Approve the setup token at PayPal. No purchase is made.", approveUrl: approve });
   }
   const approved = await paypal.approveSetupToken(setup.id);
   const token = await paypal.createPaymentToken(approved.id);
-  const now = new Date().toISOString();
   await saveVault(sql, {
     id: newId("vault"),
     ownerId: id,

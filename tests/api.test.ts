@@ -5,6 +5,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { POST as spend } from "@/app/api/agents/[id]/spend/route";
 import { closeDb, getDb } from "@/src/db/connection";
 import { seedDemo } from "@/src/db/seed";
+import { demoCookieHeader } from "@/src/server/auth";
 
 const file = path.join(os.tmpdir(), `agentpurse-api-${process.pid}.db`);
 
@@ -26,11 +27,21 @@ afterAll(async () => {
   fs.rmSync(`${file}-shm`, { force: true });
 });
 
-it("captures a grocery sentence through the HTTP handler", async () => {
-  const response = await spend(
+it("rejects an anonymous spend and captures one with the demo session", async () => {
+  const anonymous = await spend(
     new Request("http://localhost/api/agents/agent_grocer/spend", {
       method: "POST",
       headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "Buy oat milk from Green Grocer for $4" }),
+    }),
+    { params: Promise.resolve({ id: "agent_grocer" }) },
+  );
+  expect(anonymous.status).toBe(401);
+
+  const response = await spend(
+    new Request("http://localhost/api/agents/agent_grocer/spend", {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: await demoCookieHeader() },
       body: JSON.stringify({ text: "Buy oat milk and eggs from Green Grocer for $18.40" }),
     }),
     { params: Promise.resolve({ id: "agent_grocer" }) },
