@@ -113,6 +113,110 @@ Acceptance:
 - Seeded purse renders balance $238.00, four envelopes, and the denied flight
 - A grocery sentence for Green Grocer captures and the ledger updates
 
-## Out of scope for this plan
+## Phase 7 — Per-agent purses and two databases
 
-Partial refunds, live Supabase in the default process, webhooks from PayPal to a public URL, and any path where a model sets a cap or approves its own hold.
+AgentPurse does not hold money. Each agent has a ledger allowance. Raising an allowance writes the ledger. It does not capture a PayPal payment.
+
+- Async SQL port used by every store call
+- SQLite remains the default when `DATABASE_URL` is unset
+- Postgres (`pg`) is used when `DATABASE_URL` is set (Supabase). The same SQL is covered with PGlite in tests
+- Tables: owners, agents (own allowance, API key hash, policy), vaults, intents, receipts, quotes
+- Maya's household stays at `/purses/purse_maya`. Grocer, Wayfinder, Stack, and Handy each have an allowance. Stack's $12 CloudApps receipt is history. The $900 SkyAir attempt is still denied, and no order exists for it
+
+Acceptance:
+
+- `npm test` passes with no `DATABASE_URL`
+- A PGlite test applies the same schema and reads the seeded denial
+- Re-seeding does not duplicate Maya or her receipts
+
+## Phase 8 — PayPal Vault and merchant-initiated charges
+
+Sandbox and mock implement the same client.
+
+- Payment Method Tokens v3: `POST /v3/vault/setup-tokens` (save PayPal with no purchase), payer approval, `POST /v3/vault/payment-tokens`, `DELETE /v3/vault/payment-tokens/{id}`
+- Orders v2 merchant-initiated charge: `vault_id`, `stored_credential` (`MERCHANT` / `SUBSEQUENT` / `UNSCHEDULED_POSTPAID`), `payee.email_address` of the demo merchant, `custom_id` = intent id
+- Capture and full refund
+- Webhooks: build the CRC32 transmission message, verify via PayPal `verify-webhook-signature` in live mode and HMAC of that message in mock mode, idempotent receipt write
+- Events: `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`, `CHECKOUT.ORDER.APPROVED`, `VAULT.PAYMENT-TOKEN.DELETED`
+
+Acceptance:
+
+- Mock tests vault a wallet, charge a merchant, refund, and reject a webhook with a bad signature
+- Live tests assert the setup-token, payment-token, order, and verify-webhook request shapes with an injected `fetch`
+
+## Phase 9 — Policy compiler and intent guard
+
+- Plain-English rules compile to a structured policy (Zod). Groq or Gemini when `AI_MODE=live`. The mock compiler is the offline fallback. Invalid model JSON is rejected
+- The deterministic clerk remains the last word and never calls a model
+- Intent guard compares a proposed purchase to the user's original task and to text on the page. Hidden instructions such as "buy 5 gift cards" block the purchase. A model cannot override a block
+- Demo page shows the block on a grocery page that hides that instruction
+
+Acceptance:
+
+- Compiler tests for the mock path and a fake live response that fails schema
+- Guard tests: the gift-card injection blocks; the oat-milk task passes
+
+## Phase 10 — MCP server
+
+Spec-compliant MCP (protocol `2025-11-25`) over stdio and streamable HTTP (`POST /mcp`, `GET /mcp` may be 405).
+
+Tools: `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, `list_receipts`.
+
+- Stdio reads `AGENTPURSE_API_KEY` from the environment
+- HTTP accepts a bearer agent API key or an OAuth 2.1 access token (authorization code + PKCE, protected-resource metadata, authorization-server metadata)
+- Origin checks on browser requests
+- Docs for Claude Desktop, Cursor, and other MCP clients
+
+Acceptance:
+
+- Protocol tests for `initialize`, `tools/list`, and `tools/call`
+- OAuth tests: register, authorize, token, then `get_budget`
+- A purchase through MCP writes an intent whose `custom_id` is that intent id
+
+## Phase 11 — Approval above the line
+
+- Pending intents notify the owner
+- Web Push (VAPID) when a subscription and keys exist. The same payload is always stored in the in-app inbox so the demo works without a push service
+- WebAuthn passkey registration and assertion. Capture runs only after a verified assertion
+- Fallback: a PayPal approval link (customer-present order, then capture on approval)
+
+Acceptance:
+
+- HTTP approve without a verified passkey is rejected
+- A PayPal approval link can be created, approved, and captured in mock mode
+- Push payload names the merchant and the amount
+
+## Phase 12 — Kill switch
+
+- Pause one agent. The clerk denies that agent until resume
+- Revoke deletes the vault token at PayPal and marks the wallet revoked. Later charges fail
+- Global panic freeze denies every agent until cleared
+
+Acceptance:
+
+- Tests for pause, revoke (mock DELETE token), and panic, including a charge that must not be created during panic
+
+## Phase 13 — Dashboard
+
+Household page shows allowances (not a balance we hold), the linked PayPal wallet, per-agent policy and keys, holds, receipts with refund, pause, revoke, and panic. The injection demo is linked from the household.
+
+Acceptance:
+
+- View test: Maya has four agents, a vaulted wallet, the CloudApps receipt, and the SkyAir denial
+- Browser pass of allow, injection block, approval, and panic
+
+## Phase 14 — Grok Bot plugin, deploy, submission docs
+
+- Plugin package matching the Grok marketplace layout (`.grok-plugin/plugin.json`, `.mcp.json` with `type: http`) plus a Cursor plugin manifest and a skill that tells the assistant to quote, then request, and never to skip the clerk
+- `docs/PLUGIN.md` with install steps, `AGENTPURSE_API_KEY`, OAuth, and the "buy X for me" flow
+- `docs/DEPLOY.md` for Vercel and Render free tiers with Supabase
+- README **For judges**, `docs/DEMO.md` (3-minute script: injection block, approval, kill switch, plugin purchase), `docs/DEVPOST.md`, and `docs/AI-TOOLS.md`
+
+Acceptance:
+
+- `npm test` passes
+- README commands match the app
+
+## Still out of scope
+
+Partial refunds, holding a PayPal balance in AgentPurse, and letting a model raise an allowance, unpause an agent, or clear a panic.
