@@ -32,6 +32,9 @@ export function HouseholdControls({ ownerId, panic, vaultStatus }: { ownerId: st
         <button className="btn secondary" type="button" disabled={pending || vaultStatus !== "vaulted"} onClick={() => void run(`/api/households/${ownerId}/revoke`)}>
           Revoke PayPal
         </button>
+        <button className="btn secondary" type="button" disabled={pending} onClick={() => void run("/api/demo/reset")}>
+          Reset demo
+        </button>
         {vaultStatus !== "vaulted" ? (
           <button className="btn secondary" type="button" disabled={pending} onClick={() => void run(`/api/households/${ownerId}/vault`)}>
             Link PayPal

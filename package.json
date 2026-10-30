@@ -12,7 +12,8 @@
     "seed": "tsx scripts/seed.ts",
     "mcp": "tsx src/mcp/stdio.ts",
     "typecheck": "tsc --noEmit",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "deploy": "npx vercel"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.13",
