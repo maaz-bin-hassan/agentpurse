@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { centsToDecimal } from "@/src/domain/money";
 import type { PaypalOrderRecord } from "@/src/domain/types";
+import { evaluateSpend } from "@/src/policy/engine";
 import {
   insertAgent,
   insertAudit,
@@ -227,12 +228,30 @@ export function seedDemo(db: DatabaseSync, options?: { now?: Date }): { purseId:
       createdAt: softwareAt,
     });
 
-    const flightReasons = [
-      { code: "per_txn_cap", sentence: "$900.00 is over the $150.00 per-payment cap." },
-      { code: "envelope_cap", sentence: "The Travel envelope has $400.00 left this month." },
-      { code: "daily_cap", sentence: "$900.00 would exceed the $300.00 daily cap." },
-    ];
-    const flightExplanation = `Denied. ${flightReasons.map((reason) => reason.sentence).join(" ")}`;
+    const flight = evaluateSpend({
+      ownerName: "Maya Chen",
+      agentName: "Wayfinder",
+      agentStatus: "active",
+      samePurse: true,
+      intentComplete: true,
+      amountCents: 90000,
+      currency: "USD",
+      purseCurrency: "USD",
+      merchantName: "SkyAir",
+      merchantBlocked: false,
+      merchantTrusted: true,
+      category: "travel",
+      categoryAllowed: true,
+      envelope: { name: "Travel", limitCents: 40000, spentCents: 0, period: "monthly" },
+      perTxnCapCents: 15000,
+      dailyCapCents: 30000,
+      dailySpentCents: 0,
+      balanceCents,
+      approvalThresholdCents: 5000,
+    });
+    if (flight.decision !== "deny") {
+      throw new Error("Demo flight must be denied by the purse clerk");
+    }
     insertSpend(db, {
       id: "spend_skyair",
       purseId: DEMO_PURSE_ID,
@@ -245,9 +264,9 @@ export function seedDemo(db: DatabaseSync, options?: { now?: Date }): { purseId:
       category: "travel",
       purpose: "Book a $900 flight to Lisbon on SkyAir",
       confidence: 0.95,
-      decision: "deny",
-      decisionReasons: flightReasons,
-      explanation: flightExplanation,
+      decision: flight.decision,
+      decisionReasons: flight.reasons,
+      explanation: flight.explanation,
       status: "denied",
       paypalOrderId: null,
       captureId: null,
@@ -259,7 +278,7 @@ export function seedDemo(db: DatabaseSync, options?: { now?: Date }): { purseId:
       purseId: DEMO_PURSE_ID,
       actor: "clerk",
       action: "spend_denied",
-      detail: flightExplanation,
+      detail: flight.explanation,
       createdAt: flightAt,
     });
   });

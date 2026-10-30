@@ -3,10 +3,15 @@ import { GET } from "@/app/api/health/route";
 import { healthPayload } from "@/src/config";
 
 describe("health", () => {
-  const previous = { ...process.env };
+  const keys = ["PAYPAL_MODE", "AI_MODE", "PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET"] as const;
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
 
   afterEach(() => {
-    process.env = { ...previous };
+    for (const key of keys) {
+      const value = previous[key];
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   });
 
   it("defaults to mock PayPal and mock AI with no credentials", () => {
