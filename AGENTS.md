@@ -47,7 +47,7 @@ Keep this list honest when a phase lands.
 
 - [x] Plan, architecture, and this guide
 - [x] Phase 0 — scaffold, MIT license, mock env, judge-facing README
-- [ ] Phase 1 — schema, repository, seed script
+- [x] Phase 1 — schema, repository, seed script
 - [ ] Phase 2 — policy engine
 - [ ] Phase 3 — PayPal mock (full) and live adapter
 - [ ] Phase 4 — intent parsing
