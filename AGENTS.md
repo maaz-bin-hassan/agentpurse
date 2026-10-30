@@ -46,7 +46,7 @@ Open http://localhost:3000/purses/purse_maya after seeding. The app also seeds t
 Keep this list honest when a phase lands.
 
 - [x] Plan, architecture, and this guide
-- [ ] Phase 0 — scaffold, MIT license, mock env, judge-facing README
+- [x] Phase 0 — scaffold, MIT license, mock env, judge-facing README
 - [ ] Phase 1 — schema, repository, seed script
 - [ ] Phase 2 — policy engine
 - [ ] Phase 3 — PayPal mock (full) and live adapter
