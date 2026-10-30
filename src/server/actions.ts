@@ -1,4 +1,5 @@
 import type { AppEnv } from "@/src/config";
+import { assessIntent } from "@/src/ai/guard";
 import { parseSpendIntent } from "@/src/ai/intent";
 import { merchantPayee } from "@/src/domain/payee";
 import { formatMoney } from "@/src/domain/money";
@@ -165,6 +166,50 @@ export async function requestPurchase(
   const vault = await getVault(sql, owner.id);
   const intentParsed = await parseSpendIntent(trimmed, { merchants: await listMerchants(sql), env: options?.env ?? process.env });
   const merchant = intentParsed.merchantName ? await findMerchantByName(sql, intentParsed.merchantName) : undefined;
+  const originalTask = options?.originalTask?.trim() || trimmed;
+  const guard = assessIntent({
+    originalTask,
+    merchantName: intentParsed.merchantName,
+    amountCents: intentParsed.amountCents,
+    category: intentParsed.category,
+    purpose: intentParsed.purpose,
+    pageExcerpt: options?.pageExcerpt,
+  });
+  if (guard.decision === "block") {
+    const at = stamp(now);
+    const intentId = newId("intent");
+    const explanation = guard.reasons.map((reason) => reason.sentence).join(" ");
+    await insertIntent(sql, {
+      id: intentId,
+      agentId: agent.id,
+      ownerId: owner.id,
+      originalTask,
+      rawText: trimmed,
+      pageExcerpt: options?.pageExcerpt ?? null,
+      merchantName: intentParsed.merchantName,
+      merchantEmail: merchant?.paypalEmail ?? null,
+      amountCents: intentParsed.amountCents,
+      currency: intentParsed.currency,
+      category: intentParsed.category,
+      purpose: intentParsed.purpose,
+      confidence: intentParsed.confidence,
+      guardDecision: "block",
+      guardReasons: guard.reasons,
+      decision: "deny",
+      decisionReasons: guard.reasons,
+      explanation,
+      status: "blocked",
+      paypalOrderId: null,
+      captureId: null,
+      approvalMethod: null,
+      quoteId: null,
+      createdAt: at,
+      updatedAt: at,
+    });
+    const intent = await getIntent(sql, intentId);
+    if (!intent) return fail(500, "The block was not recorded.");
+    return { status: 200, body: { ok: true, explanation, intent, spend: intent, order: null } };
+  }
   const clerk = await clerkFor(sql, {
     owner,
     agent,
@@ -183,7 +228,7 @@ export async function requestPurchase(
     id: intentId,
     agentId: agent.id,
     ownerId: owner.id,
-    originalTask: options?.originalTask?.trim() || trimmed,
+    originalTask,
     rawText: trimmed,
     pageExcerpt: options?.pageExcerpt ?? null,
     merchantName: intentParsed.merchantName,
@@ -376,6 +421,80 @@ export async function refundIntent(
     const updated = await getIntent(sql, intent.id);
     if (!updated) return fail(500, "The refund was not recorded.");
     return { status: 200, body: { ok: true, explanation, intent: updated, spend: updated } };
+  } catch (error) {
+    if (error instanceof PayPalError) return fail(error.status, error.message);
+    throw error;
+  }
+}
+
+export async function beginPaypalApproval(
+  sql: Sql,
+  intentId: string,
+  options?: ActionOptions,
+): Promise<ActionResult<{ ok: true; url: string; paypalUrl: string; orderId: string } | { ok: false; error: string }>> {
+  const intent = await getIntent(sql, intentId);
+  if (!intent) return fail(404, "Unknown intent.");
+  if (intent.status !== "pending_approval") return fail(409, "That request is not waiting for approval.");
+  const vault = await getVault(sql, intent.ownerId);
+  if (!vault?.paymentTokenId) return fail(409, "Link PayPal before using the approval link.");
+  if (intent.amountCents == null || !intent.currency) return fail(409, "The intent has no amount.");
+  const order = await clientFor(sql, options).createOrder({
+    amountCents: intent.amountCents,
+    currency: intent.currency,
+    kind: "approval",
+    customId: intent.id,
+    intentId: intent.id,
+    ownerId: intent.ownerId,
+    payeeEmail: intent.merchantEmail ?? merchantPayee(options?.env),
+    vaultId: vault.paymentTokenId,
+    description: `Approval for ${intent.merchantName ?? "a payment"}`,
+    storedCredential: { payment_initiator: "CUSTOMER", usage: "SUBSEQUENT", usage_pattern: "UNSCHEDULED_POSTPAID" },
+  });
+  const paypalUrl = order.links.find((link) => link.rel === "approve")?.href ?? "";
+  await updateIntent(sql, intent.id, { status: "awaiting_paypal", paypalOrderId: order.id, approvalMethod: "paypal_link", updatedAt: stamp(options?.now ?? new Date()) });
+  return { status: 200, body: { ok: true, url: `/paypal/approve/${order.id}`, paypalUrl, orderId: order.id } };
+}
+
+export async function finishPaypalApproval(
+  sql: Sql,
+  orderId: string,
+  options?: ActionOptions,
+): Promise<ActionResult<{ ok: true; explanation: string } | { ok: false; error: string }>> {
+  const { getPaypalOrder } = await import("@/src/db/repository");
+  const record = await getPaypalOrder(sql, orderId);
+  if (!record?.intentId) return fail(404, "Unknown PayPal order.");
+  const intent = await getIntent(sql, record.intentId);
+  const agent = intent ? await getAgent(sql, intent.agentId) : undefined;
+  const owner = intent ? await getOwner(sql, intent.ownerId) : undefined;
+  const vault = owner ? await getVault(sql, owner.id) : undefined;
+  if (!intent || !agent || !owner || !vault) return fail(404, "The approval is missing its household.");
+  try {
+    const paypal = clientFor(sql, options);
+    await paypal.approveOrder(orderId);
+    const captured = await paypal.captureOrder(orderId);
+    const captureId = captured.purchase_units[0]?.payments?.captures?.[0]?.id;
+    if (!captureId || intent.amountCents == null) return fail(502, "PayPal did not capture the approval.");
+    const explanation = `Paid ${intent.merchantName ?? "the merchant"} ${formatMoney(intent.amountCents)} after PayPal approval.`;
+    const at = stamp(options?.now ?? new Date());
+    await insertReceipt(sql, {
+      id: newId("rcpt"),
+      intentId: intent.id,
+      agentId: agent.id,
+      ownerId: owner.id,
+      kind: "capture",
+      amountCents: intent.amountCents,
+      currency: intent.currency ?? "USD",
+      merchantName: intent.merchantName ?? "Merchant",
+      paypalOrderId: captured.id,
+      captureId,
+      refundId: null,
+      customId: intent.id,
+      webhookEventId: null,
+      detail: explanation,
+      createdAt: at,
+    });
+    await updateIntent(sql, intent.id, { status: "captured", decision: "allow", explanation, captureId, paypalOrderId: captured.id, updatedAt: at });
+    return { status: 200, body: { ok: true, explanation } };
   } catch (error) {
     if (error instanceof PayPalError) return fail(error.status, error.message);
     throw error;

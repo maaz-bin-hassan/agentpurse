@@ -1,0 +1,9 @@
+{
+  "name": "agentpurse",
+  "version": "0.2.0",
+  "description": "Buy things for the user from their AgentPurse. Quotes, policy, approval, PayPal charge, receipt.",
+  "author": { "name": "MaAz Khan Hassan" },
+  "license": "MIT",
+  "keywords": ["paypal", "agentpurse", "payments", "mcp", "allowance"],
+  "homepage": "https://github.com/maaz-bin-hassan/agentpurse"
+}

@@ -1,62 +1,55 @@
 # Devpost copy
 
-Paste-ready text for the PayPal AI Hackathon submission. The demo runs with `PAYPAL_MODE=mock`. Say that plainly in the submission so judges are not asked to create a sandbox account.
-
 ## Project name
 
 AgentPurse
 
 ## Tagline
 
-A checkbook AI agents spend from. The model may read the sentence. It does not move the money.
+The purse an agent spends from. PayPal charges the merchant. The model does not move the money.
 
 ## About the project
 
-AI agents are starting to buy things. A prompt is not a control. AgentPurse is the purse those agents spend from: envelopes, a hard per-payment cap, a daily cap, a merchant denylist, and a line above which a person has to say yes. PayPal is the rail that actually moves the dollars. The clerk that allows, holds, or denies a payment is ordinary TypeScript, and every reason is written into a ledger a person can read.
+Agents are starting to buy things. A prompt is not a receipt, and a wallet the app holds is the wrong shape: the payer already has PayPal. AgentPurse links that wallet once, gives each agent its own allowance and key, and lets the agent ask in a sentence. A guard checks the ask against the user's task. A clerk applies caps in code. PayPal then pays the merchant. Above a line, a person confirms with a passkey or a PayPal approval link. One switch pauses an agent, deletes the vault token, or freezes the household.
 
 ## What it does
 
-Maya Chen funds one household purse. Four agents ask to spend in plain English: Grocer, Wayfinder, Stack, and Handy. Each sentence is parsed into a merchant, an amount, and a category. The clerk then:
+- Saves PayPal with Payment Method Tokens v3. No purchase is required to link.
+- Charges with Orders v2: `vault_id`, merchant-initiated `stored_credential`, the sandbox business account as `payee`, and the intent id in `custom_id`.
+- Captures, refunds, and verifies webhooks before they become receipts.
+- Gives Claude, Grok, ChatGPT, or any MCP client its own allowance, API key, and policy.
+- Compiles a plain-English rule into a schema-checked policy. Groq or Gemini are optional. The clerk can ignore the model.
+- Blocks a hidden "buy 5 gift cards" instruction that is not the user's task.
+- Notifies the owner, accepts a WebAuthn passkey, or falls back to a PayPal approval link.
+- Pauses an agent, revokes the vault token at PayPal, or panic-freezes every payment.
 
-- pays it, by creating a PayPal order, approving it, and capturing it
-- holds it for Maya when the merchant is untrusted or the amount crosses $50
-- denies it when the envelope, the cap, the balance, the agent's category, or the denylist says no
-
-A denied $900 flight never creates a PayPal charge. A refund returns the capture to the purse and to the envelope. Top-ups walk the same three PayPal states: created, approved, captured.
+The default is mock mode. Judges do not need sandbox keys. `PAYPAL_MODE=live` uses the sandbox.
 
 ## How we built it
 
-- Next.js and TypeScript for the checkbook UI and the HTTP API
-- SQLite, through Node's built-in `node:sqlite`, so the demo is one file and needs no hosted database
-- A PayPal Orders v2 client. `PAYPAL_MODE=mock` (the default) stores orders in SQLite and enforces create → approve → capture → refund. `src/paypal/live.ts` is the sandbox adapter and is unit-tested with a fake `fetch`
-- A local intent parser so the demo needs no model key. Optional Groq or Gemini adapters sit behind `AI_MODE=live`. Code rejects any amount the model did not copy from the sentence, and it keeps a known merchant's category from the catalog
-- Vitest for the clerk, the mock PayPal transitions, the parser, and the full allow / hold / deny / refund story
+Next.js, TypeScript, SQLite for the laptop, Postgres on Supabase when `DATABASE_URL` is set, Vitest, and PGlite so the Postgres schema is executed in tests. MCP is protocol `2025-11-25` over stdio and streamable HTTP, with OAuth 2.1 PKCE for remote clients and an API key for local ones. The Grok plugin package matches the marketplace layout (`.grok-plugin/plugin.json` and `.mcp.json`).
 
-A Postgres twin of the schema is in `supabase/migrations` for a later hosted project. The running demo does not call Supabase.
+## Challenges
 
-## Challenges we ran into
+The easy design is an LLM risk score and a balance the app holds. Both are the wrong authority. We kept the model on the near side of a wall: it may read a sentence or draft a policy JSON document, and code decides. The second constraint was the hackathon clock. Mock mode had to perform the same vault, charge, webhook, and approval steps the sandbox client performs, or the demo would depend on accounts the judges do not have.
 
-The tempting design is to ask a model "should this agent be allowed to spend?" That makes the safety layer as persuadable as the agent. We kept the model on one side of a wall: it may propose an intent, and deterministic rules dispose of it. The second challenge was the hackathon itself. Judges should not have to wait on sandbox keys, so the mock implements the same order lifecycle the live adapter calls.
+## Accomplishments
 
-## Accomplishments that we're proud of
-
-- A working purse: fund, spend, hold, approve, deny, refund, with a ledger that quotes the rule
-- The $900 flight is denied for every cap it breaks, and no PayPal order exists for it
-- `npm test`, `npm run seed`, and `npm run dev` succeed with an empty environment
+- A vaulted wallet, a merchant charge, a refund, and a signed webhook, with no dollars sitting in AgentPurse.
+- An injection demo that blocks a gift-card instruction hidden on a grocery page.
+- An MCP server a Grok Bot, Claude Desktop, or Cursor can call, plus a plugin skill that says to stop when the guard blocks.
 
 ## What we learned
 
-Payment policy wants to be boring code with a specific sentence attached to each rule. An agent can be useful at the edge of the purse and still be forbidden from editing the purse.
+Agentic commerce needs a purse, not a prompt. The interesting PayPal surface is the vault and the merchant-initiated order, because the agent is not the payer standing at checkout.
 
 ## What's next
 
-- Point the live adapter at a PayPal sandbox buyer flow, including the redirect back from checkout
-- Apply the Supabase migration when the purse should be hosted
-- Partial refunds and per-agent budgets that are tighter than the envelope
+Partial refunds, a hosted Supabase project for the public demo, and submitting the plugin to the Grok marketplace once the production URL is stable.
 
 ## Built with
 
-Next.js, TypeScript, Node.js, SQLite, PayPal Orders API v2, Vitest. Optional: Groq, Gemini, Supabase (schema only).
+Next.js, TypeScript, Node.js, SQLite, Postgres, Supabase, PayPal Payment Method Tokens v3, PayPal Orders v2, MCP, WebAuthn, Web Push, Zod, Vitest. Optional: Groq, Gemini, Vercel, Render.
 
 ## Try it out
 

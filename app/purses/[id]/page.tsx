@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AgentPause } from "@/components/AgentPause";
 import { AllowanceForm } from "@/components/AllowanceForm";
 import { HoldActions } from "@/components/HoldActions";
+import { HouseholdControls } from "@/components/HouseholdControls";
 import { RefundButton } from "@/components/RefundButton";
 import { SpendForm } from "@/components/SpendForm";
 import { getDb } from "@/src/db/connection";
@@ -48,6 +50,10 @@ export default async function PursePage({ params }: { params: Promise<{ id: stri
             {vault?.paymentTokenId ?? "No payment token"} · AgentPurse does not hold a balance.
             {owner.panicFrozen ? " Panic freeze is on." : ""}
           </p>
+          <HouseholdControls ownerId={owner.id} panic={owner.panicFrozen} vaultStatus={vault?.status ?? "missing"} />
+          <p>
+            <Link href="/demo/injection">Try the injection demo</Link>
+          </p>
           <h2>Allowances</h2>
           {agents.map((agent) => (
             <div key={agent.id} style={{ marginBottom: 16 }}>
@@ -67,7 +73,9 @@ export default async function PursePage({ params }: { params: Promise<{ id: stri
               </div>
               <p className="muted" style={{ margin: "4px 0 0" }}>
                 {formatMoney(agent.spentCents)} spent of {formatMoney(agent.allowanceCents)} · {agent.allowedCategories.join(", ")} · {agent.provider}
+                {agent.status === "paused" ? " · paused" : ""}
               </p>
+              <AgentPause agentId={agent.id} paused={agent.status === "paused"} />
               <AllowanceForm agentId={agent.id} agentName={agent.name} />
             </div>
           ))}
@@ -116,6 +124,18 @@ export default async function PursePage({ params }: { params: Promise<{ id: stri
               />
             ))}
           </div>
+        </section>
+      ) : null}
+      {view.notifications.length > 0 ? (
+        <section className="panel">
+          <h2 style={{ marginTop: 0 }}>Approval inbox</h2>
+          <ul>
+            {view.notifications.slice(0, 5).map((note) => (
+              <li key={String(note.id)}>
+                <strong>{String(note.title)}</strong> — {String(note.body)}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
       <section className="panel">

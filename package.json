@@ -10,6 +10,7 @@
     "start": "next start",
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
+    "mcp": "tsx src/mcp/stdio.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -15,7 +15,8 @@ const sans = Public_Sans({
 
 export const metadata: Metadata = {
   title: "AgentPurse",
-  description: "A checkbook AI agents spend from, settled on PayPal.",
+  description: "A checkbook AI agents spend from. PayPal charges the merchant. The purse does not hold the money.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

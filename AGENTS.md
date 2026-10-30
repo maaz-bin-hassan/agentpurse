@@ -57,14 +57,14 @@ Keep this list honest when a phase lands.
 - [x] Phase 4 — intent parsing
 - [x] Phase 5 — orchestration and HTTP API
 - [x] Phase 6 — dashboard, `docs/DEMO.md`, `docs/DEVPOST.md`
-- [ ] Phase 7 — per-agent allowances, SQLite and Postgres
-- [ ] Phase 8 — PayPal Vault, merchant charges, webhooks
-- [ ] Phase 9 — policy compiler and intent guard
-- [ ] Phase 10 — MCP stdio, streamable HTTP, OAuth
-- [ ] Phase 11 — passkey approval, Web Push, PayPal approval link
-- [ ] Phase 12 — pause, vault revoke, panic freeze
-- [ ] Phase 13 — dashboard and injection demo
-- [ ] Phase 14 — Grok plugin, deploy docs, submission copy
+- [x] Phase 7 — per-agent allowances, SQLite and Postgres
+- [x] Phase 8 — PayPal Vault, merchant charges, webhooks
+- [x] Phase 9 — policy compiler and intent guard
+- [x] Phase 10 — MCP stdio, streamable HTTP, OAuth
+- [x] Phase 11 — passkey approval, Web Push, PayPal approval link
+- [x] Phase 12 — pause, vault revoke, panic freeze
+- [x] Phase 13 — dashboard and injection demo
+- [x] Phase 14 — Grok plugin, deploy docs, submission copy
 
 ## Changing a rule
 

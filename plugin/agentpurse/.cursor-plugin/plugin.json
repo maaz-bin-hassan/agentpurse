@@ -1,0 +1,8 @@
+{
+  "name": "agentpurse",
+  "version": "0.2.0",
+  "description": "Spend from the user's AgentPurse over MCP. The clerk can deny or hold a purchase.",
+  "author": { "name": "MaAz Khan Hassan" },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
