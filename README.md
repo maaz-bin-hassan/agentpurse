@@ -6,7 +6,7 @@ Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/). Def
 
 ## For judges
 
-You can review this without creating a PayPal sandbox account.
+You can review this without creating a PayPal sandbox account, a model key, or a Supabase project.
 
 ```bash
 npm install
@@ -15,15 +15,23 @@ npm run seed
 npm run dev
 ```
 
-Then open http://localhost:3000. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`.
+Open http://localhost:3000 and then http://localhost:3000/purses/purse_maya. The first boot seeds Maya Chen's household if the database is empty. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`.
 
 What you are judging:
 
-- **PayPal** is integrated as an Orders v2 client (`create`, buyer `approve`, `capture`, `refund`). The mock stores those orders in SQLite and enforces the same transitions. `src/paypal/live.ts` is the sandbox adapter, used only when `PAYPAL_MODE=live`.
-- **AI** parses a spend sentence into a merchant, an amount, and a category. With `AI_MODE=mock` (the default) that parser is local and deterministic. A live Groq or Gemini key is optional. Code still checks the amount against the sentence.
-- **The clerk** is ordinary TypeScript. Caps, envelopes, denylist, balance, and the approval line are not model opinions.
+- **PayPal** is an Orders v2 client: create, buyer approve, capture, refund. Mock mode stores those orders in SQLite and refuses illegal transitions (capture before approve, double capture, refund before capture). `src/paypal/live.ts` calls the sandbox only when `PAYPAL_MODE=live` and keys are present.
+- **AI** turns a sentence into a merchant, an amount, and a category. `AI_MODE=mock` (the default) does that locally. Groq or Gemini are optional. An amount the model invents is discarded, and a known merchant keeps the category from the catalog.
+- **The clerk** is ordinary TypeScript. Envelopes, caps, the denylist, the balance, and the $50 approval line are not model opinions. A denied payment never creates a PayPal order.
 
-The click-by-click script is `docs/DEMO.md` (added with the dashboard). Paste-ready Devpost copy is `docs/DEVPOST.md`.
+Three-minute path, also written as `docs/DEMO.md`:
+
+1. Read the clerk's line. Wayfinder already tried to book a $900 SkyAir flight and was denied.
+2. Ask Grocer to buy oat milk from Green Grocer for $18.40. That captures.
+3. Ask Wayfinder to hold a $75 Metro Rail seat. That waits for Maya. Approve it.
+4. Ask Grocer to buy a charger. That is denied, because Grocer cannot spend on electronics.
+5. Refund the oat milk, or top up $100 through Create → Approve → Capture.
+
+Paste-ready submission text is in `docs/DEVPOST.md`.
 
 ## Scripts
 

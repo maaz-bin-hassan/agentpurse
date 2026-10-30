@@ -263,8 +263,75 @@ textarea {
 }
 
 .form-error {
-  color: var(--deny);
+  color: var(--ink);
   margin: 8px 0 0;
+}
+
+.balance {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-size: clamp(2.8rem, 6vw, 4.2rem);
+  margin: 0;
+  letter-spacing: -0.04em;
+}
+
+.clerk {
+  margin: 0;
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  line-height: 1.25;
+  font-weight: 520;
+}
+
+.meter {
+  height: 6px;
+  background: #efe6d6;
+  margin-top: 8px;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--brass);
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.suggestions button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  padding: 4px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.suggestions button:hover {
+  border-color: var(--brass);
+  color: var(--ink);
+}
+
+.agent-card + .agent-card {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 22px 0;
+}
+
+@media (max-width: 800px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stack {
