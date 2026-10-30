@@ -10,6 +10,8 @@
     "start": "next start",
     "test": "vitest run",
     "seed": "tsx scripts/seed.ts",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:seed": "tsx scripts/db-seed.ts",
     "mcp": "tsx src/mcp/stdio.ts",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
