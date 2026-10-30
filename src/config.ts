@@ -2,19 +2,21 @@ export type PaypalMode = "mock" | "live";
 export type AiMode = "mock" | "live";
 export type AiProvider = "groq" | "gemini";
 
-export function paypalMode(env: NodeJS.ProcessEnv = process.env): PaypalMode {
+export type AppEnv = Record<string, string | undefined>;
+
+export function paypalMode(env: AppEnv = process.env): PaypalMode {
   return env.PAYPAL_MODE?.toLowerCase() === "live" ? "live" : "mock";
 }
 
-export function aiMode(env: NodeJS.ProcessEnv = process.env): AiMode {
+export function aiMode(env: AppEnv = process.env): AiMode {
   return env.AI_MODE?.toLowerCase() === "live" ? "live" : "mock";
 }
 
-export function aiProvider(env: NodeJS.ProcessEnv = process.env): AiProvider {
+export function aiProvider(env: AppEnv = process.env): AiProvider {
   return env.AI_PROVIDER?.toLowerCase() === "gemini" ? "gemini" : "groq";
 }
 
-export function healthPayload(env: NodeJS.ProcessEnv = process.env) {
+export function healthPayload(env: AppEnv = process.env) {
   const paypal = paypalMode(env);
   const ai = aiMode(env);
   return {
