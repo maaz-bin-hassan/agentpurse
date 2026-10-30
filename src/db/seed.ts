@@ -1,3 +1,4 @@
+import { DEMO_KEYS } from "@/src/domain/demo-keys";
 import { DEMO_PAYEE } from "@/src/domain/payee";
 import { evaluateSpend } from "@/src/policy/engine";
 import {
@@ -15,12 +16,7 @@ import type { Sql } from "@/src/db/sql";
 
 export const DEMO_OWNER_ID = "purse_maya";
 
-export const DEMO_KEYS = {
-  agent_grocer: "agpk_grocer_demo_maya",
-  agent_wayfinder: "agpk_wayfinder_demo_maya",
-  agent_stack: "agpk_stack_demo_maya",
-  agent_handy: "agpk_handy_demo_maya",
-} as const;
+export { DEMO_KEYS };
 
 export const DEMO_VAULT_ID = "VAULT-MOCK-MAYA";
 
