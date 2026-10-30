@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // node:sqlite is a Node built-in. Keep it out of the client bundle.
-  serverExternalPackages: [],
+  allowedDevOrigins: ["127.0.0.1"],
+  serverExternalPackages: ["pg"],
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = config.externals || [];
