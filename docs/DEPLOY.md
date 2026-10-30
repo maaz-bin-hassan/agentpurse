@@ -8,9 +8,21 @@ The demo runs locally on SQLite with `PAYPAL_MODE=mock`. A public deploy should 
 2. In the SQL editor, run `supabase/migrations/0002_agentic_commerce.sql`. `0001` is a no-op.
 3. Copy the transaction pooler URI (port `6543`) into `DATABASE_URL`.
 
+## One command
+
+From this directory, after `npm install`:
+
+```bash
+npx vercel
+```
+
+Accept the defaults. Then set the environment variables below in the Vercel project and run `npx vercel --prod`. The app boots in mock mode with no secrets. The first request seeds Maya if `AGENTPURSE_AUTO_SEED` is not `0`.
+
+Render is the other free option: the included `render.yaml` is the blueprint. Create the service from that file, set `DATABASE_URL`, and deploy.
+
 ## Vercel (free tier)
 
-1. Import the GitHub repository. Framework preset is Next.js.
+1. `npx vercel` as above, or import the GitHub repository. Framework preset is Next.js.
 2. Set environment variables from `.env.example`. At minimum for a public mock demo:
 
 ```

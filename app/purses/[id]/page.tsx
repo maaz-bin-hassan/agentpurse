@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SiteHeader } from "@/components/site-header";
 import { AgentPause } from "@/components/AgentPause";
 import { AllowanceForm } from "@/components/AllowanceForm";
 import { HoldActions } from "@/components/HoldActions";
@@ -29,12 +30,7 @@ export default async function PursePage({ params }: { params: Promise<{ id: stri
 
   return (
     <main className="shell">
-      <header className="topbar">
-        <Link className="wordmark" href="/">
-          Agent<span>Purse</span>
-        </Link>
-        <Link href="/">All households</Link>
-      </header>
+      <SiteHeader aside={<Link href="/">All households</Link>} />
       <p className="eyebrow">{owner.email}</p>
       <h1 style={{ margin: "6px 0 0" }}>{owner.name}'s household</h1>
       <hr className="rule" />

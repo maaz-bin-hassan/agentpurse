@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { POST as approve } from "@/app/api/spends/[id]/approve/route";
 import { openDatabase } from "@/src/db/connection";
 import { seedDemo } from "@/src/db/seed";
+import { demoCookieHeader } from "@/src/server/auth";
 import { approvalPush, verifyAuthentication } from "@/src/server/approvals";
 import { beginPaypalApproval, finishPaypalApproval, requestPurchase } from "@/src/server/actions";
 
@@ -31,10 +32,16 @@ describe("approvals", () => {
     ).rejects.toThrow(/challenge|passkey|Unknown/i);
 
     const response = await approve(
-      new Request("http://localhost/api/spends/x/approve", { method: "POST", body: "{}" }),
+      new Request("http://localhost/api/spends/x/approve", {
+        method: "POST",
+        headers: { cookie: await demoCookieHeader() },
+        body: "{}",
+      }),
       { params: Promise.resolve({ id: hold.body.intent.id }) },
     );
     expect(response.status).toBe(401);
+    const body = await response.json();
+    expect(body.error).toContain("passkey");
     await closeDb();
   });
 

@@ -43,7 +43,7 @@ describe("health", () => {
 
   it("serves the health route as JSON", async () => {
     delete process.env.PAYPAL_MODE;
-    const response = GET();
+    const response = GET(new Request("http://localhost/api/health"));
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.service).toBe("agentpurse");
