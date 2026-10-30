@@ -6,6 +6,7 @@ import {
   type PayPalClient,
   type PaypalOrder,
   type PaypalRefund,
+  type SetupToken,
 } from "@/src/paypal/types";
 
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
@@ -65,6 +66,70 @@ export function createLivePayPal(options: {
 
   return {
     mode: "live",
+    async createSetupToken(input) {
+      return paypal<SetupToken>("/v3/vault/setup-tokens", {
+        method: "POST",
+        body: JSON.stringify({
+          payment_source: {
+            paypal: {
+              description: input.description,
+              usage_pattern: "IMMEDIATE",
+              usage_type: "MERCHANT",
+              customer_type: "CONSUMER",
+              experience_context: {
+                brand_name: "AgentPurse",
+                locale: "en-US",
+                return_url: input.returnUrl,
+                cancel_url: input.cancelUrl,
+              },
+            },
+          },
+        }),
+      });
+    },
+    async approveSetupToken(setupTokenId) {
+      const token = await paypal<SetupToken>(`/v3/vault/setup-tokens/${encodeURIComponent(setupTokenId)}`, { method: "GET" });
+      if (token.status === "APPROVED") return token;
+      const link = token.links?.find((item) => item.rel === "approve");
+      throw new PayPalError(link ? `Payer approval happens at PayPal: ${link.href}` : `Setup token ${setupTokenId} is not approved.`);
+    },
+    async createPaymentToken(setupTokenId) {
+      const created = await paypal<{ id: string; customer?: { id?: string }; payment_source?: { paypal?: { email_address?: string } } }>(
+        "/v3/vault/payment-tokens",
+        {
+          method: "POST",
+          body: JSON.stringify({ payment_source: { token: { id: setupTokenId, type: "SETUP_TOKEN" } } }),
+        },
+      );
+      return {
+        id: created.id,
+        status: "ACTIVE" as const,
+        customerId: created.customer?.id ?? "",
+        payerEmail: created.payment_source?.paypal?.email_address,
+      };
+    },
+    async getPaymentToken(paymentTokenId) {
+      const token = await paypal<{ id: string; customer?: { id?: string }; payment_source?: { paypal?: { email_address?: string } } }>(
+        `/v3/vault/payment-tokens/${encodeURIComponent(paymentTokenId)}`,
+        { method: "GET" },
+      );
+      return {
+        id: token.id,
+        status: "ACTIVE" as const,
+        customerId: token.customer?.id ?? "",
+        payerEmail: token.payment_source?.paypal?.email_address,
+      };
+    },
+    async deletePaymentToken(paymentTokenId) {
+      const token = await accessToken();
+      const response = await fetchImpl(`${base}/v3/vault/payment-tokens/${encodeURIComponent(paymentTokenId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status !== 204 && !response.ok) {
+        throw new PayPalError(`PayPal vault delete failed (${response.status}): ${await readError(response)}`, response.status);
+      }
+    },
     async createOrder(input: CreateOrderInput): Promise<PaypalOrder> {
       if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
         throw new PayPalError("Amount must be a positive number of cents.", 422);
@@ -77,12 +142,21 @@ export function createLivePayPal(options: {
             {
               custom_id: input.customId,
               description: input.description,
+              payee: input.payeeEmail ? { email_address: input.payeeEmail } : undefined,
               amount: {
                 currency_code: input.currency,
                 value: centsToDecimal(input.amountCents),
               },
             },
           ],
+          payment_source: input.vaultId
+            ? {
+                paypal: {
+                  vault_id: input.vaultId,
+                  stored_credential: input.storedCredential,
+                },
+              }
+            : undefined,
         }),
       });
     },
@@ -104,6 +178,21 @@ export function createLivePayPal(options: {
         method: "POST",
         body: "{}",
       });
+    },
+    async verifyWebhookSignature(input) {
+      const result = await paypal<{ verification_status?: string }>("/v1/notifications/verify-webhook-signature", {
+        method: "POST",
+        body: JSON.stringify({
+          auth_algo: input.authAlgo,
+          cert_url: input.certUrl,
+          transmission_id: input.transmissionId,
+          transmission_sig: input.transmissionSig,
+          transmission_time: input.transmissionTime,
+          webhook_id: input.webhookId,
+          webhook_event: input.event,
+        }),
+      });
+      return result.verification_status === "SUCCESS";
     },
     async refundCapture(captureId: string, amountCents?: number): Promise<PaypalRefund> {
       const body =

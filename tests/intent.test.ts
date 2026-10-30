@@ -3,12 +3,12 @@ import { interpretModelPayload, parseSpendIntent } from "@/src/ai/intent";
 import type { Merchant } from "@/src/domain/types";
 
 const merchants: Merchant[] = [
-  { id: "1", name: "Green Grocer", category: "groceries", trusted: true, blocked: false },
-  { id: "2", name: "Metro Rail", category: "travel", trusted: true, blocked: false },
-  { id: "3", name: "CloudApps", category: "software", trusted: true, blocked: false },
-  { id: "4", name: "SkyAir", category: "travel", trusted: true, blocked: false },
-  { id: "5", name: "Unknown Gadgets", category: "electronics", trusted: false, blocked: false },
-  { id: "6", name: "Lucky Chips", category: "electronics", trusted: false, blocked: true },
+  { id: "1", name: "Green Grocer", category: "groceries", trusted: true, blocked: false, paypalEmail: "sb-merchant@business.example.com" },
+  { id: "2", name: "Metro Rail", category: "travel", trusted: true, blocked: false, paypalEmail: "sb-merchant@business.example.com" },
+  { id: "3", name: "CloudApps", category: "software", trusted: true, blocked: false, paypalEmail: "sb-merchant@business.example.com" },
+  { id: "4", name: "SkyAir", category: "travel", trusted: true, blocked: false, paypalEmail: "sb-merchant@business.example.com" },
+  { id: "5", name: "Unknown Gadgets", category: "electronics", trusted: false, blocked: false, paypalEmail: "sb-merchant@business.example.com" },
+  { id: "6", name: "Lucky Chips", category: "electronics", trusted: false, blocked: true, paypalEmail: "sb-merchant@business.example.com" },
 ];
 
 describe("local intent parser", () => {

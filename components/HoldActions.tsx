@@ -19,12 +19,19 @@ export function HoldActions({
   const [pending, setPending] = useState(false);
   const noteId = `note-${spendId}`;
 
-  async function decide(path: "approve" | "deny") {
+  async function decide(path: "paypal" | "deny") {
     setPending(true);
     setMessage(null);
     try {
-      const payload = await postJson(`/api/spends/${spendId}/${path}`, { note });
-      setMessage(typeof payload.explanation === "string" ? payload.explanation : "Recorded.");
+      if (path === "paypal") {
+        const started = await postJson(`/api/intents/${spendId}/paypal-approval`, { note });
+        const orderId = String(started.orderId ?? "");
+        const finished = await postJson(`/api/paypal/orders/${orderId}/finish`);
+        setMessage(typeof finished.explanation === "string" ? finished.explanation : "Paid after PayPal approval.");
+      } else {
+        const payload = await postJson(`/api/spends/${spendId}/deny`, { note });
+        setMessage(typeof payload.explanation === "string" ? payload.explanation : "Recorded.");
+      }
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not update the hold.");
@@ -43,8 +50,8 @@ export function HoldActions({
       <label htmlFor={noteId}>Note</label>
       <input id={noteId} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the ledger" />
       <div className="actions">
-        <button className="btn" type="button" disabled={pending} onClick={() => void decide("approve")}>
-          Approve and pay
+        <button className="btn" type="button" disabled={pending} onClick={() => void decide("paypal")}>
+          Approve at PayPal
         </button>
         <button className="btn secondary" type="button" disabled={pending} onClick={() => void decide("deny")}>
           Deny

@@ -1,19 +1,12 @@
 import { formatMoney } from "@/src/domain/money";
-import { periodLabel } from "@/src/domain/period";
-import type { Category, Decision, Period, RuleHit } from "@/src/domain/types";
-
-export interface EnvelopeSnapshot {
-  name: string;
-  limitCents: number;
-  spentCents: number;
-  period: Period;
-}
+import type { Category, Decision, RuleHit } from "@/src/domain/types";
 
 export interface ClerkInput {
   ownerName: string;
   agentName: string;
   agentStatus: "active" | "paused" | "missing";
-  samePurse: boolean;
+  panicFrozen: boolean;
+  vaultReady: boolean;
   intentComplete: boolean;
   amountCents: number | null;
   currency: string | null;
@@ -23,11 +16,10 @@ export interface ClerkInput {
   merchantTrusted: boolean;
   category: Category | null;
   categoryAllowed: boolean;
-  envelope: EnvelopeSnapshot | null;
   perTxnCapCents: number;
   dailyCapCents: number;
   dailySpentCents: number;
-  balanceCents: number;
+  allowanceRemainingCents: number;
   approvalThresholdCents: number;
   /** When a person is approving a hold, skip the threshold and trust rules. Caps still apply. */
   humanApproved?: boolean;
@@ -44,8 +36,8 @@ function hit(code: string, sentence: string): RuleHit {
 }
 
 function explain(decision: Decision, reasons: RuleHit[], input: ClerkInput): string {
-  if (decision === "allow" && input.amountCents != null && input.merchantName && input.envelope) {
-    return `Paid ${input.merchantName} ${formatMoney(input.amountCents, input.purseCurrency)} from the ${input.envelope.name} envelope.`;
+  if (decision === "allow" && input.amountCents != null && input.merchantName) {
+    return `Paid ${input.merchantName} ${formatMoney(input.amountCents, input.purseCurrency)} from ${input.agentName}'s allowance.`;
   }
   const sentences = reasons.map((reason) => reason.sentence).join(" ");
   if (decision === "needs_clarification") {
@@ -58,6 +50,11 @@ function explain(decision: Decision, reasons: RuleHit[], input: ClerkInput): str
 }
 
 export function evaluateSpend(input: ClerkInput): ClerkResult {
+  if (input.panicFrozen) {
+    const reasons = [hit("panic_freeze", "The household panic freeze is on. No agent can pay.")];
+    return { decision: "deny", reasons, explanation: explain("deny", reasons, input) };
+  }
+
   if (!input.intentComplete) {
     const reasons = [
       hit("intent_incomplete", "Include an amount in dollars and the merchant to pay."),
@@ -65,8 +62,8 @@ export function evaluateSpend(input: ClerkInput): ClerkResult {
     return { decision: "needs_clarification", reasons, explanation: explain("needs_clarification", reasons, input) };
   }
 
-  if (input.agentStatus === "missing" || !input.samePurse) {
-    const reasons = [hit("agent_purse_mismatch", "This agent does not belong to the purse.")];
+  if (input.agentStatus === "missing") {
+    const reasons = [hit("agent_missing", "This agent is not in the household.")];
     return { decision: "deny", reasons, explanation: explain("deny", reasons, input) };
   }
 
@@ -92,10 +89,6 @@ export function evaluateSpend(input: ClerkInput): ClerkResult {
       hit("category_not_allowed", `${input.agentName} cannot spend on ${input.category}.`),
     );
   }
-  if (!input.envelope) {
-    denies.push(hit("no_envelope", `No envelope covers ${input.category ?? "that category"}.`));
-  }
-
   if (input.amountCents != null && input.amountCents > 0) {
     if (amount > input.perTxnCapCents) {
       denies.push(
@@ -105,16 +98,13 @@ export function evaluateSpend(input: ClerkInput): ClerkResult {
         ),
       );
     }
-    if (input.envelope) {
-      const remaining = input.envelope.limitCents - input.envelope.spentCents;
-      if (amount > remaining) {
-        denies.push(
-          hit(
-            "envelope_cap",
-            `The ${input.envelope.name} envelope has ${formatMoney(remaining, input.purseCurrency)} left ${periodLabel(input.envelope.period)}.`,
-          ),
-        );
-      }
+    if (amount > input.allowanceRemainingCents) {
+      denies.push(
+        hit(
+          "allowance",
+          `${input.agentName} has ${formatMoney(input.allowanceRemainingCents, input.purseCurrency)} of allowance left.`,
+        ),
+      );
     }
     const dailyRemaining = input.dailyCapCents - input.dailySpentCents;
     if (amount > dailyRemaining) {
@@ -125,14 +115,10 @@ export function evaluateSpend(input: ClerkInput): ClerkResult {
         ),
       );
     }
-    if (amount > input.balanceCents) {
-      denies.push(
-        hit(
-          "insufficient_balance",
-          `The purse has ${formatMoney(input.balanceCents, input.purseCurrency)} available.`,
-        ),
-      );
-    }
+  }
+
+  if (!input.vaultReady) {
+    denies.push(hit("vault_missing", "Link PayPal before an agent can pay."));
   }
 
   if (denies.length > 0) {

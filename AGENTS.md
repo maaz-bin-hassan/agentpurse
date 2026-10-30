@@ -7,10 +7,13 @@ This file is the working agreement for anyone (human or agent) changing the repo
 ## Non-negotiables
 
 - Money is integer cents. Never float currency.
+- AgentPurse never holds funds. An allowance is a ledger number. PayPal charges the payer's vaulted wallet and pays the merchant.
 - `PAYPAL_MODE=mock` is the default. `npm test`, `npm run seed`, and `npm run dev` must succeed with no API keys and no network.
-- Policy lives in `src/policy/engine.ts` and is a pure function. Do not call an LLM from the policy engine. Do not let a model override a deny.
-- AI parses intent only. Code checks that any amount the model returns actually appears in the user's sentence, and that the category is one the app knows.
-- Live PayPal (`PAYPAL_MODE=live`) and live AI (`AI_MODE=live`) are optional adapters. Missing credentials fall back or fail with an explicit error. They must not break mock mode.
+- Policy lives in `src/policy/engine.ts` and is a pure function. Do not call an LLM from the policy engine. Do not let a model override a deny, a guard block, a pause, or a panic.
+- The intent guard compares a purchase to the user's original task. Hidden page instructions cannot authorize a different purchase.
+- AI may parse a sentence or compile a plain-English rule into JSON. Code validates that JSON and checks amounts against the sentence. The clerk still decides.
+- Live PayPal (`PAYPAL_MODE=live`) and live AI (`AI_MODE=live`) are optional adapters. Missing credentials must not break mock mode.
+- Revoke deletes the PayPal payment token. Do not only flip a local flag.
 - Do not commit `.env`, database files, or secrets. `.env.example` stays placeholder-only.
 - New policy rules need a failing test first, then the implementation.
 
@@ -29,15 +32,16 @@ Open http://localhost:3000/purses/purse_maya after seeding. The app also seeds t
 
 | Path | Role |
 | --- | --- |
-| `src/db` | SQLite schema, connection, demo seed |
+| `src/db` | SQLite and Postgres, demo seed |
 | `src/policy` | Deterministic clerk |
-| `src/paypal` | `PayPalClient` interface, mock, live sandbox adapter |
-| `src/ai` | Intent parser, mock model, optional Groq/Gemini adapter |
-| `src/server` | Spend, top-up, approval, refund orchestration |
-| `app/api` | Thin HTTP wrappers over `src/server` |
-| `app/` | Dashboard |
-| `tests` | Vitest, no network |
-| `supabase/migrations` | Postgres schema for a hosted Supabase project later |
+| `src/paypal` | Vault, Orders v2, webhooks, mock and live |
+| `src/ai` | Intent parser, policy compiler, intent guard |
+| `src/server` | Purchase, approval, refund, kill switch |
+| `src/mcp` | MCP tools, stdio entry |
+| `app/mcp` | Streamable HTTP MCP |
+| `app/api` | Thin HTTP wrappers |
+| `plugin/` | Grok and Cursor plugin package |
+| `supabase/migrations` | Schema applied to Supabase |
 | `docs/PLAN.md` | Phases and acceptance checks |
 | `docs/ARCHITECTURE.md` | How a dollar moves |
 
@@ -53,6 +57,14 @@ Keep this list honest when a phase lands.
 - [x] Phase 4 — intent parsing
 - [x] Phase 5 — orchestration and HTTP API
 - [x] Phase 6 — dashboard, `docs/DEMO.md`, `docs/DEVPOST.md`
+- [x] Phase 7 — per-agent allowances, SQLite and Postgres
+- [x] Phase 8 — PayPal Vault, merchant charges, webhooks
+- [x] Phase 9 — policy compiler and intent guard
+- [x] Phase 10 — MCP stdio, streamable HTTP, OAuth
+- [x] Phase 11 — passkey approval, Web Push, PayPal approval link
+- [x] Phase 12 — pause, vault revoke, panic freeze
+- [x] Phase 13 — dashboard and injection demo
+- [x] Phase 14 — Grok plugin, deploy docs, submission copy
 
 ## Changing a rule
 

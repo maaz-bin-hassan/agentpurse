@@ -1,13 +1,10 @@
-import { getDb } from "@/src/db/connection";
-import { createTopup } from "@/src/server/actions";
-import { asResponse, readJson } from "@/src/server/http";
+import { asResponse, fail } from "@/src/server/http";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
-  const body = await readJson(request);
-  const amountCents = Number(body.amountCents);
-  return asResponse(await createTopup(getDb(), id, amountCents));
+export function POST() {
+  return asResponse(
+    fail(400, "AgentPurse does not hold PayPal funds. Raise an agent's allowance at POST /api/agents/:id/allowance."),
+  );
 }

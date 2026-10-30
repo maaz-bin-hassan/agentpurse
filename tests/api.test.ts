@@ -8,18 +8,19 @@ import { seedDemo } from "@/src/db/seed";
 
 const file = path.join(os.tmpdir(), `agentpurse-api-${process.pid}.db`);
 
-beforeAll(() => {
+beforeAll(async () => {
   process.env.AGENTPURSE_DB = file;
   process.env.AGENTPURSE_AUTO_SEED = "0";
   process.env.PAYPAL_MODE = "mock";
   process.env.AI_MODE = "mock";
-  closeDb();
+  delete process.env.DATABASE_URL;
+  await closeDb();
   fs.rmSync(file, { force: true });
-  seedDemo(getDb(), { now: new Date("2026-10-30T12:00:00.000Z") });
+  await seedDemo(await getDb(), { now: new Date("2026-10-30T12:00:00.000Z") });
 });
 
-afterAll(() => {
-  closeDb();
+afterAll(async () => {
+  await closeDb();
   fs.rmSync(file, { force: true });
   fs.rmSync(`${file}-wal`, { force: true });
   fs.rmSync(`${file}-shm`, { force: true });
@@ -37,7 +38,7 @@ it("captures a grocery sentence through the HTTP handler", async () => {
   expect(response.status).toBe(200);
   const body = await response.json();
   expect(body.ok).toBe(true);
-  expect(body.spend.status).toBe("captured");
-  expect(body.order.status).toBe("COMPLETED");
-  expect(body.explanation).toContain("Paid Green Grocer");
+  expect(body.intent.status).toBe("captured");
+  expect(body.order.payment_source.paypal.vault_id).toBe("VAULT-MOCK-MAYA");
+  expect(body.order.purchase_units[0].custom_id).toBe(body.intent.id);
 });

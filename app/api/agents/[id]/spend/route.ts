@@ -1,5 +1,5 @@
 import { getDb } from "@/src/db/connection";
-import { submitSpend } from "@/src/server/actions";
+import { requestPurchase } from "@/src/server/actions";
 import { asResponse, readJson } from "@/src/server/http";
 
 export const dynamic = "force-dynamic";
@@ -9,5 +9,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const body = await readJson(request);
   const text = typeof body.text === "string" ? body.text : "";
-  return asResponse(await submitSpend(getDb(), id, text));
+  const originalTask = typeof body.originalTask === "string" ? body.originalTask : undefined;
+  const pageExcerpt = typeof body.pageExcerpt === "string" ? body.pageExcerpt : undefined;
+  return asResponse(await requestPurchase(await getDb(), id, text, { originalTask, pageExcerpt }));
 }

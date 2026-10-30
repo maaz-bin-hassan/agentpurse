@@ -1,23 +1,28 @@
-import type { DatabaseSync } from "node:sqlite";
-import { centsToDecimal } from "@/src/domain/money";
-import type { PaypalOrderRecord } from "@/src/domain/types";
+import { DEMO_PAYEE } from "@/src/domain/payee";
 import { evaluateSpend } from "@/src/policy/engine";
 import {
   insertAgent,
   insertAudit,
-  insertEnvelope,
-  insertPurse,
-  insertSpend,
+  insertIntent,
+  insertOwner,
+  insertReceipt,
+  newId,
+  saveVault,
   upsertMerchant,
   upsertPaypalOrder,
 } from "@/src/db/repository";
-import { transaction } from "@/src/db/transaction";
+import type { Sql } from "@/src/db/sql";
 
-export const DEMO_PURSE_ID = "purse_maya";
+export const DEMO_OWNER_ID = "purse_maya";
 
-function iso(date: Date): string {
-  return date.toISOString();
-}
+export const DEMO_KEYS = {
+  agent_grocer: "agpk_grocer_demo_maya",
+  agent_wayfinder: "agpk_wayfinder_demo_maya",
+  agent_stack: "agpk_stack_demo_maya",
+  agent_handy: "agpk_handy_demo_maya",
+} as const;
+
+export const DEMO_VAULT_ID = "VAULT-MOCK-MAYA";
 
 function daysBefore(now: Date, days: number, hours = 0): string {
   const copy = new Date(now.getTime());
@@ -26,132 +31,75 @@ function daysBefore(now: Date, days: number, hours = 0): string {
   return copy.toISOString();
 }
 
-function completedOrder(input: {
-  id: string;
-  captureId: string;
-  purseId: string;
-  spendRequestId: string | null;
-  kind: "topup" | "spend";
-  amountCents: number;
-  createdAt: string;
-}): PaypalOrderRecord {
-  const value = centsToDecimal(input.amountCents);
-  const body = {
-    id: input.id,
-    status: "COMPLETED",
-    intent: "CAPTURE",
-    purchase_units: [
-      {
-        custom_id: input.spendRequestId ?? input.purseId,
-        amount: { currency_code: "USD", value },
-        payments: {
-          captures: [
-            {
-              id: input.captureId,
-              status: "COMPLETED",
-              amount: { currency_code: "USD", value },
-            },
-          ],
-        },
-      },
-    ],
-    links: [],
-    create_time: input.createdAt,
-    update_time: input.createdAt,
-  };
-  return {
-    id: input.id,
-    purseId: input.purseId,
-    spendRequestId: input.spendRequestId,
-    kind: input.kind,
-    status: "COMPLETED",
-    currency: "USD",
-    amountCents: input.amountCents,
-    captureId: input.captureId,
-    customId: input.spendRequestId ?? input.purseId,
-    rawJson: JSON.stringify(body),
-    createdAt: input.createdAt,
-    updatedAt: input.createdAt,
-  };
-}
-
-export function seedDemo(db: DatabaseSync, options?: { now?: Date }): { purseId: string; balanceCents: number } {
+export async function seedDemo(sql: Sql, options?: { now?: Date }): Promise<{ ownerId: string }> {
   const now = options?.now ?? new Date();
   const createdAt = daysBefore(now, 3, 12);
-  const topupAt = daysBefore(now, 2, 15);
   const softwareAt = daysBefore(now, 1, 16);
   const flightAt = daysBefore(now, 1, 18);
-  const balanceCents = 23800;
 
-  transaction(db, () => {
-    db.prepare("DELETE FROM purses WHERE id = ?").run(DEMO_PURSE_ID);
-
-    insertPurse(db, {
-      id: DEMO_PURSE_ID,
-      name: "Maya's Household",
-      ownerName: "Maya Chen",
-      currency: "USD",
-      balanceCents,
-      perTxnCapCents: 15000,
-      dailyCapCents: 30000,
-      approvalThresholdCents: 5000,
+  await sql.transaction(async (tx) => {
+    await tx.exec("DELETE FROM approvals WHERE intent_id IN (SELECT id FROM intents WHERE owner_id = ?)", [DEMO_OWNER_ID]);
+    await tx.exec("DELETE FROM receipts WHERE owner_id = ?", [DEMO_OWNER_ID]);
+    await tx.exec("DELETE FROM paypal_orders WHERE owner_id = ?", [DEMO_OWNER_ID]);
+    await tx.exec("DELETE FROM quotes WHERE agent_id IN (SELECT id FROM agents WHERE owner_id = ?)", [DEMO_OWNER_ID]);
+    await tx.exec("DELETE FROM intents WHERE owner_id = ?", [DEMO_OWNER_ID]);
+    await tx.exec("DELETE FROM audit_events WHERE owner_id = ?", [DEMO_OWNER_ID]);
+    await tx.exec("DELETE FROM mock_payment_tokens WHERE id = ?", [DEMO_VAULT_ID]);
+    await tx.exec("DELETE FROM owners WHERE id = ?", [DEMO_OWNER_ID]);
+    await insertOwner(tx, {
+      id: DEMO_OWNER_ID,
+      name: "Maya Chen",
+      email: "maya@example.com",
+      panicFrozen: false,
       createdAt,
     });
+    await saveVault(tx, {
+      id: "vault_maya",
+      ownerId: DEMO_OWNER_ID,
+      setupTokenId: "SETUP-MOCK-MAYA",
+      paymentTokenId: DEMO_VAULT_ID,
+      paypalCustomerId: "CUSTOMER-MOCK-MAYA",
+      payerEmail: "maya@example.com",
+      status: "vaulted",
+      createdAt,
+      updatedAt: createdAt,
+    });
+    await tx.exec(
+      `INSERT INTO mock_payment_tokens (id, setup_token_id, customer_id, payer_email, status, raw_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'ACTIVE', '{}', ?, ?)`,
+      [DEMO_VAULT_ID, "SETUP-MOCK-MAYA", "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
+    );
 
-    const envelopes = [
-      ["env_groceries", "Groceries", "groceries", 8000, "weekly"],
-      ["env_travel", "Travel", "travel", 40000, "monthly"],
-      ["env_software", "Software", "software", 4000, "monthly"],
-      ["env_household", "Household", "electronics", 10000, "monthly"],
+    const agents = [
+      ["agent_grocer", "Grocer", "claude", "Buys food for the house.", DEMO_KEYS.agent_grocer, 8000, "groceries"],
+      ["agent_wayfinder", "Wayfinder", "grok", "Books trains, flights, and hotels.", DEMO_KEYS.agent_wayfinder, 40000, "travel"],
+      ["agent_stack", "Stack", "chatgpt", "Pays for software the household uses.", DEMO_KEYS.agent_stack, 4000, "software"],
+      ["agent_handy", "Handy", "mcp", "Replaces cables, chargers, and small gear.", DEMO_KEYS.agent_handy, 10000, "electronics"],
     ] as const;
-    for (const [id, name, category, limitCents, period] of envelopes) {
-      insertEnvelope(db, {
-        id,
-        purseId: DEMO_PURSE_ID,
-        name,
-        category,
-        limitCents,
-        period,
-        createdAt,
-      });
+    for (const [id, name, provider, description, apiKey, allowance, category] of agents) {
+      await insertAgent(
+        tx,
+        {
+          id,
+          ownerId: DEMO_OWNER_ID,
+          name,
+          provider,
+          description,
+          apiKeyPrefix: apiKey.slice(0, 12),
+          allowanceCents: allowance,
+          status: "active",
+          allowedCategories: [category],
+          perTxnCapCents: 15000,
+          dailyCapCents: 30000,
+          approvalThresholdCents: 5000,
+          trustedMerchantsOnly: false,
+          policyText: `${name} may spend the ${category} allowance. Ask Maya at $50 or for an untrusted merchant.`,
+          policySource: "seed",
+          createdAt,
+        },
+        apiKey,
+      );
     }
-
-    insertAgent(db, {
-      id: "agent_grocer",
-      purseId: DEMO_PURSE_ID,
-      name: "Grocer",
-      description: "Buys food for the house.",
-      allowedCategories: ["groceries"],
-      status: "active",
-      createdAt,
-    });
-    insertAgent(db, {
-      id: "agent_wayfinder",
-      purseId: DEMO_PURSE_ID,
-      name: "Wayfinder",
-      description: "Books trains, flights, and hotels.",
-      allowedCategories: ["travel"],
-      status: "active",
-      createdAt,
-    });
-    insertAgent(db, {
-      id: "agent_stack",
-      purseId: DEMO_PURSE_ID,
-      name: "Stack",
-      description: "Pays for software the household uses.",
-      allowedCategories: ["software"],
-      status: "active",
-      createdAt,
-    });
-    insertAgent(db, {
-      id: "agent_handy",
-      purseId: DEMO_PURSE_ID,
-      name: "Handy",
-      description: "Replaces cables, chargers, and small gear.",
-      allowedCategories: ["electronics"],
-      status: "active",
-      createdAt,
-    });
 
     const merchants = [
       ["merch_green_grocer", "Green Grocer", "groceries", true, false],
@@ -162,77 +110,76 @@ export function seedDemo(db: DatabaseSync, options?: { now?: Date }): { purseId:
       ["merch_lucky_chips", "Lucky Chips", "electronics", false, true],
     ] as const;
     for (const [id, name, category, trusted, blocked] of merchants) {
-      upsertMerchant(db, { id, name, category, trusted, blocked });
+      await upsertMerchant(tx, { id, name, category, trusted, blocked, paypalEmail: DEMO_PAYEE });
     }
 
-    upsertPaypalOrder(
-      db,
-      completedOrder({
-        id: "PAY-MOCK-TOPUP2500",
-        captureId: "CAP-MOCK-TOPUP2500",
-        purseId: DEMO_PURSE_ID,
-        spendRequestId: null,
-        kind: "topup",
-        amountCents: 25000,
-        createdAt: topupAt,
-      }),
-    );
-    insertAudit(db, {
-      id: "audit_topup",
-      purseId: DEMO_PURSE_ID,
-      actor: "paypal",
-      action: "topup_captured",
-      detail: "Captured PayPal order PAY-MOCK-TOPUP2500 for $250.00. Purse balance funded.",
-      createdAt: topupAt,
-    });
-
-    upsertPaypalOrder(
-      db,
-      completedOrder({
-        id: "PAY-MOCK-CLOUD012",
-        captureId: "CAP-MOCK-CLOUD012",
-        purseId: DEMO_PURSE_ID,
-        spendRequestId: "spend_cloudapps",
-        kind: "spend",
-        amountCents: 1200,
-        createdAt: softwareAt,
-      }),
-    );
-    insertSpend(db, {
-      id: "spend_cloudapps",
-      purseId: DEMO_PURSE_ID,
+    await insertReceipt(tx, {
+      id: "rcpt_cloudapps",
+      intentId: "intent_cloudapps",
       agentId: "agent_stack",
-      envelopeId: "env_software",
-      rawText: "Pay CloudApps $12 for the monthly team plan",
+      ownerId: DEMO_OWNER_ID,
+      kind: "capture",
+      amountCents: 1200,
+      currency: "USD",
       merchantName: "CloudApps",
+      paypalOrderId: "PAY-MOCK-CLOUD012",
+      captureId: "CAP-MOCK-CLOUD012",
+      refundId: null,
+      customId: "intent_cloudapps",
+      webhookEventId: null,
+      detail: "Paid CloudApps $12.00 from Stack's allowance.",
+      createdAt: softwareAt,
+    });
+    await insertIntent(tx, {
+      id: "intent_cloudapps",
+      agentId: "agent_stack",
+      ownerId: DEMO_OWNER_ID,
+      originalTask: "Pay CloudApps $12 for the monthly team plan",
+      rawText: "Pay CloudApps $12 for the monthly team plan",
+      pageExcerpt: null,
+      merchantName: "CloudApps",
+      merchantEmail: DEMO_PAYEE,
       amountCents: 1200,
       currency: "USD",
       category: "software",
       purpose: "Pay CloudApps $12 for the monthly team plan",
       confidence: 0.95,
+      guardDecision: "pass",
+      guardReasons: [],
       decision: "allow",
       decisionReasons: [],
-      explanation: "Paid CloudApps $12.00 from the Software envelope.",
+      explanation: "Paid CloudApps $12.00 from Stack's allowance.",
       status: "captured",
       paypalOrderId: "PAY-MOCK-CLOUD012",
       captureId: "CAP-MOCK-CLOUD012",
+      approvalMethod: "auto",
+      quoteId: null,
       createdAt: softwareAt,
       updatedAt: softwareAt,
     });
-    insertAudit(db, {
-      id: "audit_cloudapps",
-      purseId: DEMO_PURSE_ID,
-      actor: "stack",
-      action: "spend_captured",
-      detail: "Paid CloudApps $12.00 from the Software envelope.",
+    await upsertPaypalOrder(tx, {
+      id: "PAY-MOCK-CLOUD012",
+      ownerId: DEMO_OWNER_ID,
+      intentId: "intent_cloudapps",
+      kind: "charge",
+      status: "COMPLETED",
+      currency: "USD",
+      amountCents: 1200,
+      captureId: "CAP-MOCK-CLOUD012",
+      vaultId: DEMO_VAULT_ID,
+      payeeEmail: DEMO_PAYEE,
+      customId: "intent_cloudapps",
+      rawJson: JSON.stringify({ id: "PAY-MOCK-CLOUD012", status: "COMPLETED", custom_id: "intent_cloudapps" }),
       createdAt: softwareAt,
+      updatedAt: softwareAt,
     });
 
     const flight = evaluateSpend({
       ownerName: "Maya Chen",
       agentName: "Wayfinder",
       agentStatus: "active",
-      samePurse: true,
+      panicFrozen: false,
+      vaultReady: true,
       intentComplete: true,
       amountCents: 90000,
       currency: "USD",
@@ -242,50 +189,50 @@ export function seedDemo(db: DatabaseSync, options?: { now?: Date }): { purseId:
       merchantTrusted: true,
       category: "travel",
       categoryAllowed: true,
-      envelope: { name: "Travel", limitCents: 40000, spentCents: 0, period: "monthly" },
       perTxnCapCents: 15000,
       dailyCapCents: 30000,
       dailySpentCents: 0,
-      balanceCents,
+      allowanceRemainingCents: 40000,
       approvalThresholdCents: 5000,
     });
-    if (flight.decision !== "deny") {
-      throw new Error("Demo flight must be denied by the purse clerk");
-    }
-    insertSpend(db, {
-      id: "spend_skyair",
-      purseId: DEMO_PURSE_ID,
+    if (flight.decision !== "deny") throw new Error("Demo flight must be denied");
+    await insertIntent(tx, {
+      id: "intent_skyair",
       agentId: "agent_wayfinder",
-      envelopeId: "env_travel",
+      ownerId: DEMO_OWNER_ID,
+      originalTask: "Book a $900 flight to Lisbon on SkyAir",
       rawText: "Book a $900 flight to Lisbon on SkyAir",
+      pageExcerpt: null,
       merchantName: "SkyAir",
+      merchantEmail: DEMO_PAYEE,
       amountCents: 90000,
       currency: "USD",
       category: "travel",
       purpose: "Book a $900 flight to Lisbon on SkyAir",
       confidence: 0.95,
+      guardDecision: "pass",
+      guardReasons: [],
       decision: flight.decision,
       decisionReasons: flight.reasons,
       explanation: flight.explanation,
       status: "denied",
       paypalOrderId: null,
       captureId: null,
+      approvalMethod: null,
+      quoteId: null,
       createdAt: flightAt,
       updatedAt: flightAt,
     });
-    insertAudit(db, {
+    await insertAudit(tx, {
       id: "audit_skyair",
-      purseId: DEMO_PURSE_ID,
+      ownerId: DEMO_OWNER_ID,
       actor: "clerk",
       action: "spend_denied",
       detail: flight.explanation,
       createdAt: flightAt,
     });
+    void newId;
   });
 
-  return { purseId: DEMO_PURSE_ID, balanceCents };
-}
-
-export function demoClock(now = new Date()): string {
-  return iso(now);
+  return { ownerId: DEMO_OWNER_ID };
 }

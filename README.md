@@ -1,8 +1,8 @@
 # AgentPurse
 
-A checkbook AI agents spend from. The agent writes a sentence. A deterministic purse clerk allows the payment, holds it for a human, or denies it. PayPal is the rail. The model may read the sentence. It does not move the money.
+A purse AI agents spend from. The payer links PayPal once. Each agent has an allowance, an API key, and a policy. A guard checks the purchase against the user's task. A clerk allows, holds, or denies it in code. PayPal then charges the vaulted wallet and pays the merchant. AgentPurse does not hold the money.
 
-Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/). Default mode is `PAYPAL_MODE=mock`: the whole demo runs with no PayPal, model, or database account.
+Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/). Default mode is `PAYPAL_MODE=mock`: the whole demo runs with no PayPal, model, or Supabase account.
 
 ## For judges
 
@@ -15,23 +15,23 @@ npm run seed
 npm run dev
 ```
 
-Open http://localhost:3000 and then http://localhost:3000/purses/purse_maya. The first boot seeds Maya Chen's household if the database is empty. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`.
+Open http://localhost:3000/purses/purse_maya. The first boot seeds Maya's household if the database is empty. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`.
 
 What you are judging:
 
-- **PayPal** is an Orders v2 client: create, buyer approve, capture, refund. Mock mode stores those orders in SQLite and refuses illegal transitions (capture before approve, double capture, refund before capture). `src/paypal/live.ts` calls the sandbox only when `PAYPAL_MODE=live` and keys are present.
-- **AI** turns a sentence into a merchant, an amount, and a category. `AI_MODE=mock` (the default) does that locally. Groq or Gemini are optional. An amount the model invents is discarded, and a known merchant keeps the category from the catalog.
-- **The clerk** is ordinary TypeScript. Envelopes, caps, the denylist, the balance, and the $50 approval line are not model opinions. A denied payment never creates a PayPal order.
+- **PayPal** is Payment Method Tokens v3 (save a wallet with no purchase) and Orders v2 merchant-initiated charges (`vault_id`, `stored_credential`, `payee`, `custom_id` = intent id), plus capture, refund, and signed webhooks. `src/paypal/live.ts` calls the sandbox only when `PAYPAL_MODE=live`.
+- **AI** parses sentences, compiles plain-English rules (Zod), and blocks prompt injection. `AI_MODE=mock` does this locally. Groq or Gemini are optional and cannot override the clerk or the guard.
+- **MCP** exposes `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, and `list_receipts` over stdio and streamable HTTP. See `docs/PLUGIN.md` for Grok Bot, Claude Desktop, and Cursor.
+- **The clerk** is ordinary TypeScript. Allowances, caps, the denylist, pause, and panic are not model opinions.
 
-Three-minute path, also written as `docs/DEMO.md`:
+Three-minute path (`docs/DEMO.md`):
 
-1. Read the clerk's line. Wayfinder already tried to book a $900 SkyAir flight and was denied.
-2. Ask Grocer to buy oat milk from Green Grocer for $18.40. That captures.
-3. Ask Wayfinder to hold a $75 Metro Rail seat. That waits for Maya. Approve it.
-4. Ask Grocer to buy a charger. That is denied, because Grocer cannot spend on electronics.
-5. Refund the oat milk, or top up $100 through Create → Approve → Capture.
+1. Open `/demo/injection`. Let Grocer follow the hidden gift-card line. It is blocked. The oat-milk task is not.
+2. Hold a $75 Metro Rail seat and click **Approve at PayPal**.
+3. Pause an agent, hit **Panic freeze**, then **Revoke PayPal** (the vault token is deleted).
+4. Call the MCP server with `Authorization: Bearer agpk_grocer_demo_maya` and ask it to buy oat milk.
 
-Paste-ready submission text is in `docs/DEVPOST.md`.
+Paste-ready submission text is in `docs/DEVPOST.md`. Deploy notes are in `docs/DEPLOY.md`. AI tools are listed in `docs/AI-TOOLS.md`.
 
 ## Scripts
 
@@ -41,6 +41,7 @@ Paste-ready submission text is in `docs/DEVPOST.md`.
 | `npm run seed` | Loads Maya Chen's household into the local database. Safe to repeat. |
 | `npm run dev` | Next.js on port 3000. Seeds the demo if the database is empty. |
 | `npm run build` | Production build. |
+| `npm run mcp` | Stdio MCP server. Requires `AGENTPURSE_API_KEY`. |
 
 ## Environment
 
@@ -49,9 +50,11 @@ Copy `.env.example` only if you want to change defaults. Unset means mock.
 | Variable | Default | Role |
 | --- | --- | --- |
 | `PAYPAL_MODE` | `mock` | `live` calls the PayPal sandbox |
-| `AI_MODE` | `mock` | `live` calls Groq or Gemini for intent only |
+| `AI_MODE` | `mock` | `live` calls Groq or Gemini for intent and policy drafts |
+| `DATABASE_URL` | unset | Postgres (Supabase). Unset uses SQLite |
 | `AGENTPURSE_DB` | `data/agentpurse.db` | SQLite file |
 | `AGENTPURSE_AUTO_SEED` | on | Set to `0` to skip the demo seed |
+| `AGENTPURSE_API_KEY` | unset | Agent key for `npm run mcp` |
 
 ## License
 
