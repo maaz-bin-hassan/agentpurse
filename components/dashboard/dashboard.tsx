@@ -163,14 +163,12 @@ export function Dashboard({ data }: { data: DashboardData }) {
             <p className="text-xs tracking-[0.16em] text-violet uppercase">{owner.email}</p>
             <h1 className="mt-1 text-3xl tracking-tight">{owner.name}&apos;s household</h1>
           </div>
-          <div className="max-w-sm text-sm text-[#9aa3b8]">
-            <p>
-              {vault?.status === "vaulted" ? "Linked" : "Not linked"} · {vault?.paymentTokenId ?? "No payment token"} · AgentPurse does not hold a balance.
-              {owner.panicFrozen ? " Panic freeze is on." : ""}
-            </p>
-            {latestDetail ? <p className="mt-2 text-[#d5dbeb]">{latestDetail}</p> : null}
-          </div>
+          <p className="max-w-md text-sm text-[#9aa3b8]">
+            {vault?.status === "vaulted" ? "Linked" : "Not linked"} · {vault?.paymentTokenId ?? "No payment token"} · AgentPurse does not hold a balance.
+            {owner.panicFrozen ? " Panic freeze is on." : ""}
+          </p>
         </header>
+        {latestDetail ? <p className="glass mb-4 rounded-2xl px-4 py-3 text-sm text-[#d5dbeb]">{latestDetail}</p> : null}
         {holds.length === 0 ? <p className="mb-3 text-sm text-[#9aa3b8]">Nothing is held.</p> : (
           <div className="mb-4 space-y-3">
             {holds.map((hold) => (
