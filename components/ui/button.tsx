@@ -7,8 +7,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-ink bg-ink text-paper hover:border-brass-deep hover:bg-brass-deep hover:text-white",
-        secondary: "border-ink bg-transparent text-ink hover:border-brass",
+        default: "border-transparent bg-[#f7f7f5] text-[#141413] hover:bg-[#ff5c2a]",
+        secondary: "border-white/15 bg-transparent text-inherit hover:border-[#ff5c2a]",
       },
     },
     defaultVariants: { variant: "default" },

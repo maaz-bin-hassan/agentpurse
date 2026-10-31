@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AgentFace } from "@/components/agents/faces";
 import { postJson } from "@/components/post-json";
 
 const PAGE = `Oat milk — Green Grocer — $18.40
@@ -45,9 +46,15 @@ export function InjectionDemo() {
         </button>
       </div>
       {message ? (
-        <p role="status">
-          <span className={`chip ${tone}`}>{tone === "deny" ? "Blocked" : "Allowed"}</span> {message}
-        </p>
+        <div className={tone === "deny" ? "surface stamp rounded-xl border-[#ff5d73] p-4" : "surface rounded-xl p-4"} data-tone={tone}>
+          <div className="flex items-start gap-4">
+            <AgentFace id="agent_grocer" status="active" mood={tone === "deny" ? "block" : "yes"} />
+            <p role="status">
+              {tone === "deny" ? <span className="mb-2 block font-mono text-xs tracking-[0.2em] text-[#ff5d73] uppercase">Guard stopped the page</span> : null}
+              <span className={`chip ${tone}`}>{tone === "deny" ? "Blocked" : "Allowed"}</span> {message}
+            </p>
+          </div>
+        </div>
       ) : null}
     </div>
   );

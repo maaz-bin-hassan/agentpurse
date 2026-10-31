@@ -11,7 +11,7 @@ export default async function HomePage() {
     <main>
       <LandingExperience />
       {households.length === 0 ? (
-        <p className="mx-auto max-w-6xl px-6 pb-16 text-sm text-[#9aa3b8]">No household yet. Run npm run seed, then reload.</p>
+        <p className="mx-auto max-w-6xl px-6 pb-16 text-sm text-[var(--quiet)]">No household yet. Run npm run seed, then reload.</p>
       ) : null}
     </main>
   );
