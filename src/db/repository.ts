@@ -48,7 +48,13 @@ function flag(row: SqlRow, key: string): boolean {
 }
 
 function hits(raw: string): RuleHit[] {
-  const parsed: unknown = JSON.parse(raw);
+  if (!raw.trim()) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
   if (!Array.isArray(parsed)) return [];
   return parsed.flatMap((item) => {
     if (!item || typeof item !== "object") return [];

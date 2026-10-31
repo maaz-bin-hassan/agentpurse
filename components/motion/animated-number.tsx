@@ -13,7 +13,7 @@ export function AnimatedNumber({
   const reduce = useReducedMotion();
   const value = useMotionValue(reduce ? cents : 0);
   const text = useTransform(value, (latest) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(latest / 100),
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.round(latest) / 100),
   );
 
   useEffect(() => {

@@ -542,19 +542,20 @@ export async function panicFreeze(
   sql: Sql,
   ownerId: string,
   frozen: boolean,
-): Promise<ActionResult<{ ok: true } | { ok: false; error: string }>> {
+): Promise<ActionResult<{ ok: true; explanation: string } | { ok: false; error: string }>> {
   const owner = await getOwner(sql, ownerId);
   if (!owner) return fail(404, "Unknown household.");
+  const explanation = frozen ? "Panic freeze is on. No agent can pay." : "Panic freeze is off.";
   await setPanic(sql, ownerId, frozen);
   await insertAudit(sql, {
     id: newId("audit"),
     ownerId,
     actor: owner.name,
     action: frozen ? "panic_freeze" : "panic_cleared",
-    detail: frozen ? "Panic freeze is on. No agent can pay." : "Panic freeze is off.",
+    detail: explanation,
     createdAt: new Date().toISOString(),
   });
-  return { status: 200, body: { ok: true } };
+  return { status: 200, body: { ok: true, explanation } };
 }
 
 export async function revokeVault(

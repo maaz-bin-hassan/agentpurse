@@ -131,12 +131,12 @@ export function Dashboard({ data }: { data: DashboardData }) {
   return (
     <div className="mx-auto grid min-h-screen w-full max-w-7xl gap-5 px-3 py-4 md:grid-cols-[232px_1fr] md:px-6 md:py-6">
       <ConfettiBurst show={pulse} />
-      <aside className="glass sticky top-4 flex h-fit flex-col gap-2 rounded-3xl p-3">
-        <div className="px-2 py-2">
-          <p className="text-xs tracking-[0.18em] text-violet uppercase">AgentPurse</p>
-          <p className="mt-1 text-sm text-[#9aa3b8]">{owner.name}</p>
+      <aside className="sticky top-4 flex h-fit flex-col gap-1 md:min-h-[calc(100vh-2rem)] md:border-r md:border-white/10 md:pr-3">
+        <div className="px-2 py-3">
+          <p className="font-mono text-[11px] tracking-[0.18em] text-[#ff5c2a] uppercase">AgentPurse</p>
+          <p className="mt-2 text-sm text-[var(--quiet)]">{owner.name}</p>
         </div>
-        <nav className="flex gap-1 overflow-auto md:flex-col" aria-label="Dashboard">
+        <nav className="flex flex-wrap gap-1 md:flex-col" aria-label="Dashboard">
           {NAV.map((item) => {
             const Icon = item.icon;
             return (
@@ -144,7 +144,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
                 key={item.id}
                 type="button"
                 onClick={() => setSection(item.id)}
-                className={`flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition ${section === item.id ? "bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)]" : "text-[#c9d0df] hover:bg-white/5"}`}
+                className={`flex min-h-11 items-center gap-2 rounded-full px-3 py-2 text-left text-sm transition ${section === item.id ? "bg-[#141413] text-[#f7f7f5] dark:bg-[#f7f7f5] dark:text-[#141413]" : "text-[var(--soft)] hover:bg-white/5"}`}
                 aria-current={section === item.id ? "page" : undefined}
               >
                 <Icon className="h-4 w-4" aria-hidden />
@@ -160,16 +160,16 @@ export function Dashboard({ data }: { data: DashboardData }) {
       <main className="relative min-w-0">
         <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs tracking-[0.16em] text-violet uppercase">{owner.email}</p>
-            <h1 className="mt-1 text-3xl tracking-tight">{owner.name}&apos;s household</h1>
+            <p className="text-xs tracking-[0.16em] text-[#ff5c2a] uppercase">{owner.email}</p>
+            <h1 className="mt-2 text-4xl tracking-[-0.04em]">{owner.name}&apos;s household</h1>
           </div>
-          <p className="max-w-md text-sm text-[#9aa3b8]">
+          <p className="max-w-md text-sm text-[var(--quiet)]">
             {vault?.status === "vaulted" ? "Linked" : "Not linked"} · {vault?.paymentTokenId ?? "No payment token"} · AgentPurse does not hold a balance.
             {owner.panicFrozen ? " Panic freeze is on." : ""}
           </p>
         </header>
-        {latestDetail ? <p className="glass mb-4 rounded-2xl px-4 py-3 text-sm text-[#d5dbeb]">{latestDetail}</p> : null}
-        {holds.length === 0 ? <p className="mb-3 text-sm text-[#9aa3b8]">Nothing is held.</p> : (
+        {latestDetail ? <p className="surface mb-4 rounded-xl px-4 py-3 text-sm text-[var(--soft)]">{latestDetail}</p> : null}
+        {holds.length === 0 ? <p className="mb-3 text-sm text-[var(--quiet)]">Nothing is held.</p> : (
           <div className="mb-4 space-y-3">
             {holds.map((hold) => (
               <HoldActions key={hold.id} spendId={hold.id} title={hold.merchantName ?? "Request"} explanation={hold.explanation ?? hold.rawText} onApproved={() => setPulse(true)} />
@@ -196,7 +196,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
                   <ChartCard title="Captured by category" data={byCategory.length ? byCategory : [{ name: "none", dollars: 0 }]} dataKey="dollars" x="name" />
                 </div>
                 <TimeChart data={overTime} />
-                <section className="glass rounded-3xl p-5">
+                <section className="surface rounded-xl p-5">
                   <h2 className="text-lg">Live activity</h2>
                   <ul className="mt-3 space-y-2">
                     {intents.slice(0, 6).map((intent, index) => (
@@ -208,13 +208,13 @@ export function Dashboard({ data }: { data: DashboardData }) {
                         transition={{ delay: reduce ? 0 : index * 0.06, duration: 0.35 }}
                       >
                         <span className="font-medium">{intent.merchantName ?? "Request"}</span>
-                        <span className="text-[#9aa3b8]"> · {intent.status}</span>
-                        <p className="text-[#9aa3b8]">{intent.explanation ?? intent.rawText}</p>
+                        <span className="text-[var(--quiet)]"> · {intent.status}</span>
+                        <p className="text-[var(--quiet)]">{intent.explanation ?? intent.rawText}</p>
                       </motion.li>
                     ))}
                   </ul>
                   {notifications.length > 0 ? (
-                    <ul className="mt-4 space-y-2 text-sm text-[#c9d0df]">
+                    <ul className="mt-4 space-y-2 text-sm text-[var(--soft)]">
                       {notifications.map((note) => (
                         <li key={note.id}><span className="font-medium">{note.title}</span> · {note.body}</li>
                       ))}
@@ -226,7 +226,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             {section === "Agents" ? (
               <div className="space-y-4">
                 {agents.map((agent) => (
-                  <section key={agent.id} className="glass rounded-3xl p-4">
+                  <section key={agent.id} className="surface rounded-xl p-4">
                     <SpendForm
                       agentId={agent.id}
                       agentName={agent.name}
@@ -242,9 +242,9 @@ export function Dashboard({ data }: { data: DashboardData }) {
               </div>
             ) : null}
             {section === "Approvals" ? (
-              <section className="glass rounded-3xl p-4">
+              <section className="surface rounded-xl p-4">
                 <h2 className="text-lg">Waiting on {owner.name}</h2>
-                <p className="mt-2 text-sm text-[#9aa3b8]">Open holds sit at the top of the dashboard so a decision is one motion away.</p>
+                <p className="mt-2 text-sm text-[var(--quiet)]">Open holds sit at the top of the dashboard so a decision is one motion away.</p>
                 {captured.length > 0 ? (
                   <div className="mt-6 space-y-2">
                     <h3 className="text-base">Captured, still refundable</h3>
@@ -256,7 +256,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
               </section>
             ) : null}
             {section === "Receipts" ? (
-              <section className="glass rounded-3xl p-4">
+              <section className="surface rounded-xl p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-lg">Receipts</h2>
                   <div className="flex flex-wrap gap-2">
@@ -276,11 +276,11 @@ export function Dashboard({ data }: { data: DashboardData }) {
                     </select>
                   </div>
                 </div>
-                {filteredReceipts.length === 0 ? <p className="mt-4 text-[#9aa3b8]">No receipts in this filter.</p> : null}
+                {filteredReceipts.length === 0 ? <p className="mt-4 text-[var(--quiet)]">No receipts in this filter.</p> : null}
                 <div className="mt-3 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs tracking-wide text-[#9aa3b8] uppercase">
+                      <tr className="text-left text-xs tracking-wide text-[var(--quiet)] uppercase">
                         <th className="py-2">When</th>
                         <th>Merchant</th>
                         <th>Kind</th>
@@ -290,10 +290,10 @@ export function Dashboard({ data }: { data: DashboardData }) {
                     <tbody>
                       {filteredReceipts.map((receipt) => (
                         <tr key={receipt.id} className="border-t border-white/10">
-                          <td className="py-2 text-[#9aa3b8]">{receipt.createdAt.slice(0, 16).replace("T", " ")}</td>
+                          <td className="py-2 text-[var(--quiet)]">{receipt.createdAt.slice(0, 16).replace("T", " ")}</td>
                           <td>
                             <div className="font-medium">{receipt.merchantName}</div>
-                            <div className="text-[#9aa3b8]">{receipt.detail}</div>
+                            <div className="text-[var(--quiet)]">{receipt.detail}</div>
                           </td>
                           <td>{receipt.kind}</td>
                           <td className="text-right">{receipt.kind === "refund" ? "+" : "−"}{formatMoney(receipt.amountCents, receipt.currency)}</td>
@@ -305,9 +305,9 @@ export function Dashboard({ data }: { data: DashboardData }) {
               </section>
             ) : null}
             {section === "Guard" ? (
-              <section className="glass rounded-3xl p-4">
+              <section className="surface rounded-xl p-4">
                 <h2 className="text-lg">Injection guard log</h2>
-                {blocked.length === 0 ? <p className="mt-3 text-[#9aa3b8]">No blocked page instructions yet.</p> : null}
+                {blocked.length === 0 ? <p className="mt-3 text-[var(--quiet)]">No blocked page instructions yet.</p> : null}
                 <ul className="mt-3 space-y-2">
                   {blocked.map((intent) => (
                     <li key={intent.id} className="rounded-2xl border border-rose/40 bg-rose/10 p-3 text-sm">
@@ -317,14 +317,14 @@ export function Dashboard({ data }: { data: DashboardData }) {
                   ))}
                 </ul>
                 <p className="mt-4 text-sm">
-                  <a className="text-cyan" href="/demo/injection">Try the injection demo</a>
+                  <a className="text-[#ff5c2a]" href="/demo/injection">Try the injection demo</a>
                 </p>
               </section>
             ) : null}
             {section === "Controls" ? (
-              <section className="glass rounded-3xl p-6">
+              <section className="surface rounded-xl p-6">
                 <h2 className="text-lg">Kill switch</h2>
-                <p className="mt-1 max-w-xl text-sm text-[#9aa3b8]">Pause is on each agent card. Panic stops every payment. Revoke deletes the PayPal vault token.</p>
+                <p className="mt-1 max-w-xl text-sm text-[var(--quiet)]">Pause is on each agent card. Panic stops every payment. Revoke deletes the PayPal vault token.</p>
                 <div className={`mt-6 ${pulse ? "animate-pulse" : ""}`}>
                   <HouseholdControls ownerId={owner.id} panic={owner.panicFrozen} vaultStatus={vault?.status ?? "missing"} />
                 </div>
@@ -348,20 +348,19 @@ function spentToday(receipts: Receipt[], agentId: string) {
 function AgentCard({ agent, todayCents }: { agent: Agent; todayCents: number }) {
   const reduce = useReducedMotion();
   return (
-      <motion.article className="glass lift rounded-3xl p-4" whileHover={reduce ? undefined : { y: -4 }} whileTap={reduce ? undefined : { scale: 0.985 }}>
-      <div className="flex items-center gap-3">
+    <motion.article className="surface rounded-xl p-4" whileHover={reduce ? undefined : { y: -2 }} whileTap={reduce ? undefined : { scale: 0.99 }}>
+      <div className="flex items-start justify-between">
         <AllowanceRing spent={agent.spentCents} allowance={agent.allowanceCents} ringId={agent.id}>
           <AgentFace id={agent.id} status={agent.status} />
         </AllowanceRing>
-        <div>
-          <h2 className="text-lg">{agent.name}</h2>
-          <p className="text-xs tracking-wide text-[#9aa3b8] uppercase">{agent.provider} · {agent.status}</p>
-        </div>
+        <p className="font-mono text-[10px] tracking-[0.14em] text-[var(--quiet)] uppercase">{agent.status}</p>
       </div>
-      <p className="mt-3 text-2xl">
-        <AnimatedNumber cents={agent.remainingCents} /> <span className="text-sm text-[#9aa3b8]">left</span>
+      <h2 className="mt-3 text-lg tracking-[-0.02em]">{agent.name}</h2>
+      <p className="font-mono text-[10px] tracking-[0.14em] text-[var(--quiet)] uppercase">{agent.provider}</p>
+      <p className="mt-3 text-[1.75rem] leading-none">
+        <AnimatedNumber cents={agent.remainingCents} className="money" /> <span className="text-sm text-[var(--quiet)]">left</span>
       </p>
-      <p className="text-xs text-[#9aa3b8]">
+      <p className="mt-2 text-xs text-[var(--quiet)]">
         {formatMoney(agent.spentCents)} spent of {formatMoney(agent.allowanceCents)} · today {formatMoney(todayCents)}
       </p>
       <div className="mt-3 flex flex-wrap gap-1">
@@ -376,16 +375,16 @@ function AgentCard({ agent, todayCents }: { agent: Agent; todayCents: number }) 
 
 function ChartCard({ title, data, dataKey, x }: { title: string; data: Array<Record<string, string | number>>; dataKey: string; x: string }) {
   return (
-    <section className="glass h-72 rounded-3xl p-4">
+    <section className="surface h-72 rounded-xl p-4">
       <h2 className="text-lg">{title}</h2>
       <div className="mt-2 h-52">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-            <XAxis dataKey={x} stroke="#9aa3b8" fontSize={12} />
-            <YAxis stroke="#9aa3b8" fontSize={12} />
+            <XAxis dataKey={x} stroke="#8d8d8a" fontSize={12} />
+            <YAxis stroke="#8d8d8a" fontSize={12} />
             <Tooltip contentStyle={{ background: "#12141c", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }} />
-            <Bar dataKey={dataKey} fill="#8b7cff" radius={[8, 8, 0, 0]} />
+            <Bar dataKey={dataKey} fill="#ff5c2a" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -395,22 +394,22 @@ function ChartCard({ title, data, dataKey, x }: { title: string; data: Array<Rec
 
 function TimeChart({ data }: { data: Array<{ day: string; dollars: number }> }) {
   return (
-    <section className="glass h-72 rounded-3xl p-4" aria-label="Spend over time">
+    <section className="surface h-72 rounded-xl p-4" aria-label="Spend over time">
       <h2 className="text-lg">Spend over time</h2>
       <div className="mt-2 h-52">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
               <linearGradient id="spend-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3ee0c5" stopOpacity={0.45} />
-                <stop offset="100%" stopColor="#3ee0c5" stopOpacity={0} />
+                <stop offset="0%" stopColor="#ff5c2a" stopOpacity={0.45} />
+                <stop offset="100%" stopColor="#ff5c2a" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-            <XAxis dataKey="day" stroke="#9aa3b8" fontSize={12} />
-            <YAxis stroke="#9aa3b8" fontSize={12} />
+            <XAxis dataKey="day" stroke="#8d8d8a" fontSize={12} />
+            <YAxis stroke="#8d8d8a" fontSize={12} />
             <Tooltip contentStyle={{ background: "#12141c", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }} />
-            <Area type="monotone" dataKey="dollars" stroke="#3ee0c5" fill="url(#spend-fill)" strokeWidth={2} />
+            <Area type="monotone" dataKey="dollars" stroke="#ff5c2a" fill="url(#spend-fill)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

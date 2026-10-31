@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 
-const COLORS = ["#8b7cff", "#3ee0c5", "#f5b942", "#ff6b8a", "#ffffff"];
+const COLORS = ["#7dffb2", "#ff5c2a", "#f7f7f5"];
 
 export function ConfettiBurst({ show }: { show: boolean }) {
   const reduce = useReducedMotion();

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { AgentFace } from "@/components/agents/faces";
 import { postJson } from "@/components/post-json";
 
 export function SpendForm({
@@ -44,7 +45,10 @@ export function SpendForm({
   return (
     <form className="agent-card" onSubmit={onSubmit}>
       <div className="row">
-        <h3 style={{ margin: 0 }}>{agentName}</h3>
+        <div className="flex items-center gap-3">
+          <AgentFace id={agentId} status="active" mood={pending ? "think" : tone === "allow" ? "yes" : tone === "deny" ? "block" : tone === "hold" ? "think" : "idle"} />
+          <h3 style={{ margin: 0 }}>{agentName}</h3>
+        </div>
       </div>
       <p className="muted" style={{ marginTop: 4 }}>
         {description}
