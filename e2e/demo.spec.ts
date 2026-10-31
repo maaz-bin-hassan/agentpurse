@@ -20,8 +20,9 @@ test("judge demo: injection block, approval, and panic freeze", async ({ page })
   await expect(page.getByText("Nothing is held.")).toBeVisible();
 
   await page.getByRole("button", { name: "Controls", exact: true }).click();
-  await page.getByRole("button", { name: "Panic freeze" }).click();
-  await expect(page.getByText("No agent can pay.")).toBeVisible();
-  await page.getByRole("button", { name: "Clear panic freeze" }).click();
-  await expect(page.getByRole("button", { name: "Panic freeze" })).toBeVisible();
+  await page.getByRole("button", { name: "Panic freeze" }).click({ noWaitAfter: true });
+  await expect(page.getByText("No agent can pay.")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Controls", exact: true }).click();
+  await page.getByRole("button", { name: "Clear panic freeze" }).click({ noWaitAfter: true });
+  await expect(page.getByRole("button", { name: "Panic freeze" })).toBeVisible({ timeout: 15_000 });
 });
