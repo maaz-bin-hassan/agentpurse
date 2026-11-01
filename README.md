@@ -17,24 +17,24 @@ npm run seed
 npm run dev
 ```
 
-Open http://localhost:3000, then http://localhost:3000/purses/purse_maya. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`. **Reset demo** on the household page restores the seed.
+Open http://localhost:3000, then http://localhost:3000/purses/purse_maaz. `GET /api/health` reports `paypalMode: "mock"` and `credentialsRequired: false`. **Reset demo** on the household page restores the seed.
 
 ### Test logins
 
-There is no password. In mock mode the browser receives an httpOnly demo session for Maya Chen. Agent API keys:
+There is no password. In mock mode the browser receives an httpOnly demo session for Maaz Hassan. Agent API keys:
 
 | Who | Key |
 | --- | --- |
-| Grocer | `agpk_grocer_demo_maya` |
-| Wayfinder | `agpk_wayfinder_demo_maya` |
-| Stack | `agpk_stack_demo_maya` |
-| Handy | `agpk_handy_demo_maya` |
+| Grocer | `agpk_grocer_demo_maaz` |
+| Wayfinder | `agpk_wayfinder_demo_maaz` |
+| Stack | `agpk_stack_demo_maaz` |
+| Handy | `agpk_handy_demo_maaz` |
 
 Sandbox client id and secret are not in this repo. MaAz keeps those for judges through 15 December 2026. See `docs/SUBMISSION_CHECKLIST.md`.
 
 What you are judging:
 
-- **PayPal** is Payment Method Tokens v3 (save a wallet with no purchase) and Orders v2 merchant-initiated charges (`vault_id`, `stored_credential`, `payee`, `custom_id` = intent id), plus capture, refund, and signed webhooks. `src/paypal/live.ts` calls the sandbox only when `PAYPAL_MODE=live`.
+- **PayPal** is Payment Method Tokens v3 (save a wallet with no purchase) and Orders v2 charges against the saved wallet (`vault_id`, `custom_id` = intent id), plus refunds and webhook handling. In the sandbox, charges pay the business account that owns the REST app. `src/paypal/live.ts` calls the sandbox only when `PAYPAL_MODE=live`.
 - **AI** parses sentences, and the guard blocks prompt injection. `AI_MODE=mock` does this locally. Groq or Gemini are optional and cannot override the clerk or the guard.
 - **MCP** exposes `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, and `list_receipts` over stdio and streamable HTTP. Agent API keys are the working sign-in. See `docs/PLUGIN.md`.
 - **The clerk** is ordinary TypeScript. Allowances, caps, the denylist, pause, and panic are not model opinions.
@@ -44,7 +44,7 @@ Three-minute path (`docs/DEMO.md`):
 1. Open `/demo/injection`. Let Grocer follow the hidden gift-card line. It is blocked. The oat-milk task is not.
 2. Hold a $75 Metro Rail seat and click **Approve and pay**.
 3. Pause an agent, hit **Panic freeze**, then **Revoke PayPal** (the vault token is deleted).
-4. Call the MCP server with `Authorization: Bearer agpk_grocer_demo_maya` and ask it to buy oat milk.
+4. Call the MCP server with `Authorization: Bearer agpk_grocer_demo_maaz` and ask it to buy oat milk.
 
 Paste-ready submission text is in `docs/DEVPOST.md`. The video script is `docs/DEMO.md`. The rule-by-rule status is `docs/SUBMISSION_CHECKLIST.md`. Deploy notes are in `docs/DEPLOY.md`. AI tools are listed in `docs/AI-TOOLS.md`. The architecture diagram is in `docs/ARCHITECTURE.md`.
 
@@ -57,7 +57,7 @@ Suggested topics: `paypal`, `ai-agents`, `mcp`, `nextjs`, `hackathon`, `agentic-
 | Command | What it does |
 | --- | --- |
 | `npm test` | Vitest. No network. |
-| `npm run seed` | Loads Maya Chen's household into the local database. Safe to repeat. |
+| `npm run seed` | Loads Maaz Hassan's household into the local database. Safe to repeat. |
 | `npm run dev` | Next.js on port 3000. Seeds the demo if the database is empty. |
 | `npm run build` | Production build. |
 | `npm run mcp` | Stdio MCP server. Requires `AGENTPURSE_API_KEY`. |

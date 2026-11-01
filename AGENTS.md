@@ -26,7 +26,7 @@ npm run seed
 npm run dev
 ```
 
-Open http://localhost:3000/purses/purse_maya after seeding. The app also seeds that demo purse on first boot when the database is empty, unless `AGENTPURSE_AUTO_SEED=0`.
+Open http://localhost:3000/purses/purse_maaz after seeding. The app also seeds that demo purse on first boot when the database is empty, unless `AGENTPURSE_AUTO_SEED=0`.
 
 ## Layout
 
@@ -65,7 +65,7 @@ Keep this list honest when a phase lands.
 - [x] Phase 12 — pause, vault revoke, panic freeze
 - [x] Phase 13 — dashboard and injection demo
 - [x] Phase 14 — Grok plugin, deploy docs, submission copy
-- [ ] Phase 15 — real PayPal sandbox run: code done, waiting on sandbox keys
+- [x] Phase 15 — real PayPal sandbox run: link, charge, hold, refund, and MCP purchase. Webhook delivery still to confirm
 
 ## Changing a rule
 

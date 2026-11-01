@@ -15,11 +15,11 @@ import {
 } from "@/src/db/repository";
 import type { Sql } from "@/src/db/sql";
 
-export const DEMO_OWNER_ID = "purse_maya";
+export const DEMO_OWNER_ID = "purse_maaz";
 
 export { DEMO_KEYS };
 
-export const DEMO_VAULT_ID = "VAULT-MOCK-MAYA";
+export const DEMO_VAULT_ID = "VAULT-MOCK-MAAZ";
 
 function daysBefore(now: Date, days: number, hours = 0): string {
   const copy = new Date(now.getTime());
@@ -31,7 +31,7 @@ function daysBefore(now: Date, days: number, hours = 0): string {
 export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boolean }): Promise<{ ownerId: string }> {
   const now = options?.now ?? new Date();
   const preserve = options?.ifMissing === true;
-  // A mock token can never pay in live mode, so a live household starts unlinked.
+  // A live household starts unlinked, with no sample rows: its ledger holds only real PayPal payments.
   const mock = paypalMode() === "mock";
   const createdAt = daysBefore(now, 3, 12);
   const softwareAt = daysBefore(now, 1, 16);
@@ -52,28 +52,28 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
     }
     if (!(await has("SELECT id FROM owners WHERE id = ?", DEMO_OWNER_ID))) await insertOwner(tx, {
       id: DEMO_OWNER_ID,
-      name: "Maya Chen",
-      email: "maya@example.com",
+      name: "Maaz Hassan",
+      email: "maaz@example.com",
       panicFrozen: false,
       createdAt,
     });
-    if (!(await has("SELECT id FROM vaults WHERE id = ?", "vault_maya"))) {
+    if (!(await has("SELECT id FROM vaults WHERE id = ?", "vault_maaz"))) {
       if (preserve) {
         await tx.exec(
           `INSERT INTO vaults (
             id, owner_id, setup_token_id, payment_token_id, paypal_customer_id, payer_email, status, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, 'vaulted', ?, ?)`,
-          ["vault_maya", DEMO_OWNER_ID, "SETUP-MOCK-MAYA", mock ? DEMO_VAULT_ID : null, "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
+          ["vault_maaz", DEMO_OWNER_ID, "SETUP-MOCK-MAAZ", mock ? DEMO_VAULT_ID : null, "CUSTOMER-MOCK-MAAZ", "maaz@example.com", createdAt, createdAt],
         );
-        if (!mock) await tx.exec("UPDATE vaults SET status = 'revoked' WHERE id = 'vault_maya'");
+        if (!mock) await tx.exec("UPDATE vaults SET status = 'revoked' WHERE id = 'vault_maaz'");
       } else {
         await saveVault(tx, {
-          id: "vault_maya",
+          id: "vault_maaz",
           ownerId: DEMO_OWNER_ID,
-          setupTokenId: "SETUP-MOCK-MAYA",
+          setupTokenId: "SETUP-MOCK-MAAZ",
           paymentTokenId: mock ? DEMO_VAULT_ID : null,
-          paypalCustomerId: "CUSTOMER-MOCK-MAYA",
-          payerEmail: "maya@example.com",
+          paypalCustomerId: "CUSTOMER-MOCK-MAAZ",
+          payerEmail: "maaz@example.com",
           status: mock ? "vaulted" : "revoked",
           createdAt,
           updatedAt: createdAt,
@@ -84,7 +84,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       await tx.exec(
         `INSERT INTO mock_payment_tokens (id, setup_token_id, customer_id, payer_email, status, raw_json, created_at, updated_at)
          VALUES (?, ?, ?, ?, 'ACTIVE', '{}', ?, ?)`,
-        [DEMO_VAULT_ID, "SETUP-MOCK-MAYA", "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
+        [DEMO_VAULT_ID, "SETUP-MOCK-MAAZ", "CUSTOMER-MOCK-MAAZ", "maaz@example.com", createdAt, createdAt],
       );
     }
 
@@ -112,7 +112,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
           dailyCapCents: 30000,
           approvalThresholdCents: 5000,
           trustedMerchantsOnly: false,
-          policyText: `${name} may spend the ${category} allowance. Ask Maya at $50 or for an untrusted merchant.`,
+          policyText: `${name} may spend the ${category} allowance. Ask Maaz at $50 or for an untrusted merchant.`,
           policySource: "seed",
           createdAt,
         },
@@ -133,7 +133,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       await upsertMerchant(tx, { id, name, category, trusted, blocked, paypalEmail: DEMO_PAYEE });
     }
 
-    if (!(await has("SELECT id FROM receipts WHERE id = ?", "rcpt_cloudapps"))) await insertReceipt(tx, {
+    if (mock && !(await has("SELECT id FROM receipts WHERE id = ?", "rcpt_cloudapps"))) await insertReceipt(tx, {
       id: "rcpt_cloudapps",
       intentId: "intent_cloudapps",
       agentId: "agent_stack",
@@ -150,7 +150,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       detail: "Paid CloudApps $12.00 from Stack's allowance.",
       createdAt: softwareAt,
     });
-    if (!(await has("SELECT id FROM intents WHERE id = ?", "intent_cloudapps"))) await insertIntent(tx, {
+    if (mock && !(await has("SELECT id FROM intents WHERE id = ?", "intent_cloudapps"))) await insertIntent(tx, {
       id: "intent_cloudapps",
       agentId: "agent_stack",
       ownerId: DEMO_OWNER_ID,
@@ -177,7 +177,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       createdAt: softwareAt,
       updatedAt: softwareAt,
     });
-    if (!(await has("SELECT id FROM paypal_orders WHERE id = ?", "PAY-MOCK-CLOUD012"))) await upsertPaypalOrder(tx, {
+    if (mock && !(await has("SELECT id FROM paypal_orders WHERE id = ?", "PAY-MOCK-CLOUD012"))) await upsertPaypalOrder(tx, {
       id: "PAY-MOCK-CLOUD012",
       ownerId: DEMO_OWNER_ID,
       intentId: "intent_cloudapps",
@@ -195,7 +195,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
     });
 
     const flight = evaluateSpend({
-      ownerName: "Maya Chen",
+      ownerName: "Maaz Hassan",
       agentName: "Wayfinder",
       agentStatus: "active",
       panicFrozen: false,
@@ -216,7 +216,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       approvalThresholdCents: 5000,
     });
     if (flight.decision !== "deny") throw new Error("Demo flight must be denied");
-    if (!(await has("SELECT id FROM intents WHERE id = ?", "intent_skyair"))) await insertIntent(tx, {
+    if (mock && !(await has("SELECT id FROM intents WHERE id = ?", "intent_skyair"))) await insertIntent(tx, {
       id: "intent_skyair",
       agentId: "agent_wayfinder",
       ownerId: DEMO_OWNER_ID,
@@ -243,7 +243,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       createdAt: flightAt,
       updatedAt: flightAt,
     });
-    if (!(await has("SELECT id FROM audit_events WHERE id = ?", "audit_skyair"))) await insertAudit(tx, {
+    if (mock && !(await has("SELECT id FROM audit_events WHERE id = ?", "audit_skyair"))) await insertAudit(tx, {
       id: "audit_skyair",
       ownerId: DEMO_OWNER_ID,
       actor: "clerk",

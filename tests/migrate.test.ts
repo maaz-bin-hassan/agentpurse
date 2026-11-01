@@ -19,21 +19,21 @@ describe("ordered migrations and idempotent seed", () => {
     const sql = await openPglite();
     const first = await applyMigrations(sql);
     const second = await applyMigrations(sql);
-    expect(first.applied).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes"]);
+    expect(first.applied).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes", "0004_rename_demo_owner"]);
     expect(second.applied).toEqual([]);
-    expect(second.skipped).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes"]);
+    expect(second.skipped).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes", "0004_rename_demo_owner"]);
 
     await seedDemo(sql, { now: NOW, ifMissing: true });
     await sql.exec(
-      "INSERT INTO audit_events (id, owner_id, actor, action, detail, created_at) VALUES ('audit_extra', 'purse_maya', 'owner', 'note', 'keep me', ?)",
+      "INSERT INTO audit_events (id, owner_id, actor, action, detail, created_at) VALUES ('audit_extra', 'purse_maaz', 'owner', 'note', 'keep me', ?)",
       [NOW.toISOString()],
     );
     await seedDemo(sql, { now: NOW, ifMissing: true });
     const kept = await sql.get("SELECT id FROM audit_events WHERE id = 'audit_extra'");
     expect(kept?.id).toBe("audit_extra");
 
-    const household = await loadHousehold(sql, "purse_maya");
-    expect(household?.owner.name).toBe("Maya Chen");
+    const household = await loadHousehold(sql, "purse_maaz");
+    expect(household?.owner.name).toBe("Maaz Hassan");
     expect(household?.vault?.status).toBe("vaulted");
     expect(household?.agents).toHaveLength(4);
     expect((await getIntent(sql, "intent_skyair"))?.status).toBe("denied");

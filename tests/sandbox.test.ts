@@ -6,6 +6,7 @@ import { middleware } from "@/middleware";
 import { NextRequest } from "next/server";
 import { healthPayload, sandboxDemo } from "@/src/config";
 import { closeDb, getDb, openDatabase } from "@/src/db/connection";
+import { splitSql } from "@/src/db/migrations";
 import { getIntent, getPaypalOrder, getPaypalOrderByCustomId, getVault, listReceipts, saveVault } from "@/src/db/repository";
 import { DEMO_KEYS, seedDemo } from "@/src/db/seed";
 import type { Sql } from "@/src/db/sql";
@@ -13,6 +14,7 @@ import { actorFromBearer, callTool } from "@/src/mcp/protocol";
 import { createLivePayPal } from "@/src/paypal/live";
 import { finishVaultLink, requestPurchase } from "@/src/server/actions";
 import { demoCookieHeader } from "@/src/server/auth";
+import { readDemoSession, signDemoSession } from "@/src/server/demo-session";
 import { handlePaypalWebhook } from "@/src/server/webhooks";
 
 const NOW = new Date("2026-10-30T12:00:00.000Z");
@@ -62,7 +64,7 @@ function livePayPal(sql: Sql, fetchImpl: typeof fetch) {
 async function liveHousehold() {
   const sql = await openDatabase(":memory:");
   await seedDemo(sql, { now: NOW });
-  const vault = await getVault(sql, "purse_maya");
+  const vault = await getVault(sql, "purse_maaz");
   if (!vault) throw new Error("expected a vault");
   await saveVault(sql, { ...vault, paymentTokenId: "VAULT-REAL-1", status: "vaulted" });
   return sql;
@@ -78,7 +80,7 @@ describe("live PayPal charges", () => {
     expect(paid.body.intent.status).toBe("captured");
     expect(paid.body.intent.captureId).toBe("CAPTURE-REAL-1");
     const stored = await getPaypalOrder(sql, "ORDER-REAL-1");
-    expect(stored).toMatchObject({ intentId: paid.body.intent.id, ownerId: "purse_maya", captureId: "CAPTURE-REAL-1", amountCents: 1840, status: "COMPLETED" });
+    expect(stored).toMatchObject({ intentId: paid.body.intent.id, ownerId: "purse_maaz", captureId: "CAPTURE-REAL-1", amountCents: 1840, status: "COMPLETED" });
     expect(await getPaypalOrderByCustomId(sql, paid.body.intent.id)).toBeTruthy();
     await sql.close();
   });
@@ -100,7 +102,7 @@ describe("live PayPal charges", () => {
     const fake = fakePayPal();
     const paid = await requestPurchase(sql, "agent_grocer", "Buy oat milk from Green Grocer for $4", { now: NOW, env: LIVE, paypal: livePayPal(sql, fake.fetchImpl) });
     if (!paid.body.ok) throw new Error("expected a payment");
-    const before = (await listReceipts(sql, "purse_maya")).length;
+    const before = (await listReceipts(sql, "purse_maaz")).length;
     await sql.exec("DELETE FROM receipts WHERE capture_id = ?", ["CAPTURE-REAL-1"]);
     const event = { id: "WH-1", event_type: "PAYMENT.CAPTURE.COMPLETED", resource: { id: "CAPTURE-REAL-1", custom_id: paid.body.intent.id, amount: { currency_code: "USD", value: "4.00" } } };
     const result = await handlePaypalWebhook(
@@ -110,7 +112,7 @@ describe("live PayPal charges", () => {
       { paypal: livePayPal(sql, fake.fetchImpl) },
     );
     expect(result.status).toBe(200);
-    expect((await listReceipts(sql, "purse_maya")).length).toBe(before);
+    expect((await listReceipts(sql, "purse_maaz")).length).toBe(before);
     await sql.close();
   });
 
@@ -131,7 +133,7 @@ describe("linking a wallet in live mode", () => {
   async function waiting() {
     const sql = await openDatabase(":memory:");
     await seedDemo(sql, { now: NOW });
-    const vault = await getVault(sql, "purse_maya");
+    const vault = await getVault(sql, "purse_maaz");
     if (!vault) throw new Error("expected a vault");
     await saveVault(sql, { ...vault, setupTokenId: "SETUP-REAL-1", paymentTokenId: null, status: "payer_action_required" });
     return sql;
@@ -139,24 +141,24 @@ describe("linking a wallet in live mode", () => {
 
   it("turns an approved setup token into a saved payment token", async () => {
     const sql = await waiting();
-    const linked = await finishVaultLink(sql, "purse_maya", { now: NOW, paypal: livePayPal(sql, fakePayPal().fetchImpl) });
+    const linked = await finishVaultLink(sql, "purse_maaz", { now: NOW, paypal: livePayPal(sql, fakePayPal().fetchImpl) });
     expect(linked.body.ok).toBe(true);
-    expect(await getVault(sql, "purse_maya")).toMatchObject({ status: "vaulted", paymentTokenId: "VAULT-REAL-1", payerEmail: "buyer@personal.example.com" });
+    expect(await getVault(sql, "purse_maaz")).toMatchObject({ status: "vaulted", paymentTokenId: "VAULT-REAL-1", payerEmail: "buyer@personal.example.com" });
     await sql.close();
   });
 
   it("does not link when the payer never approved", async () => {
     const sql = await waiting();
-    const linked = await finishVaultLink(sql, "purse_maya", { now: NOW, paypal: livePayPal(sql, fakePayPal({ setupStatus: "PAYER_ACTION_REQUIRED" }).fetchImpl) });
+    const linked = await finishVaultLink(sql, "purse_maaz", { now: NOW, paypal: livePayPal(sql, fakePayPal({ setupStatus: "PAYER_ACTION_REQUIRED" }).fetchImpl) });
     expect(linked.body.ok).toBe(false);
-    expect(await getVault(sql, "purse_maya")).toMatchObject({ status: "payer_action_required", paymentTokenId: null });
+    expect(await getVault(sql, "purse_maaz")).toMatchObject({ status: "payer_action_required", paymentTokenId: null });
     await sql.close();
   });
 
   it("refuses when no link was started", async () => {
     const sql = await openDatabase(":memory:");
     await seedDemo(sql, { now: NOW });
-    const linked = await finishVaultLink(sql, "purse_maya", { now: NOW, paypal: livePayPal(sql, fakePayPal().fetchImpl) });
+    const linked = await finishVaultLink(sql, "purse_maaz", { now: NOW, paypal: livePayPal(sql, fakePayPal().fetchImpl) });
     expect(linked.status).toBe(409);
     await sql.close();
   });
@@ -179,7 +181,28 @@ describe("sandbox demo mode", () => {
     const sql = await openDatabase(":memory:");
     await seedDemo(sql, { now: NOW });
     process.env.PAYPAL_MODE = saved;
-    expect(await getVault(sql, "purse_maya")).toMatchObject({ paymentTokenId: null, status: "revoked" });
+    expect(await getVault(sql, "purse_maaz")).toMatchObject({ paymentTokenId: null, status: "revoked" });
+    expect(await listReceipts(sql, "purse_maaz")).toEqual([]);
+    expect(await sql.all("SELECT id FROM intents WHERE owner_id = 'purse_maaz'")).toEqual([]);
+    expect(await sql.all("SELECT id FROM audit_events WHERE owner_id = 'purse_maaz'")).toEqual([]);
+    await sql.close();
+  });
+
+  it("moves an existing household to the new owner and keeps its real wallet", async () => {
+    const sql = await openDatabase(":memory:");
+    const moved = fs.readFileSync("supabase/migrations/0004_rename_demo_owner.sql", "utf8");
+    const oldId = "purse_" + "maya";
+    const at = NOW.toISOString();
+    await sql.exec("INSERT INTO owners (id, name, email, panic_frozen, created_at) VALUES (?, 'Old', 'old@example.com', 0, ?)", [oldId, at]);
+    await sql.exec(
+      "INSERT INTO vaults (id, owner_id, setup_token_id, payment_token_id, paypal_customer_id, payer_email, status, created_at, updated_at) VALUES ('vault_old', ?, 'S', 'REALTOKEN', 'C', 'buyer@personal.example.com', 'vaulted', ?, ?)",
+      [oldId, at, at],
+    );
+    await sql.exec("DELETE FROM schema_migrations WHERE id LIKE '0004%'").catch(() => undefined);
+    for (const statement of splitSql(moved)) await sql.exec(statement);
+    expect(await sql.get("SELECT id FROM owners WHERE id = ?", [oldId])).toBeUndefined();
+    expect(await getVault(sql, "purse_maaz")).toMatchObject({ paymentTokenId: "REALTOKEN", status: "vaulted" });
+    expect(await sql.get("SELECT name FROM owners WHERE id = 'purse_maaz'")).toMatchObject({ name: "Maaz Hassan" });
     await sql.close();
   });
 });
@@ -247,22 +270,22 @@ describe("demo routes", () => {
 
   it("resets the ledger in sandbox demo mode and keeps the real wallet", async () => {
     const sql = await database({ PAYPAL_MODE: "live", AGENTPURSE_SANDBOX_DEMO: "1", DEMO_SESSION_SECRET: "test-secret" });
-    const vault = await getVault(sql, "purse_maya");
+    const vault = await getVault(sql, "purse_maaz");
     if (!vault) throw new Error("expected a vault");
     await saveVault(sql, { ...vault, paymentTokenId: "VAULT-REAL-1", status: "vaulted", payerEmail: "buyer@personal.example.com" });
-    await sql.exec("UPDATE owners SET panic_frozen = 1 WHERE id = ?", ["purse_maya"]);
+    await sql.exec("UPDATE owners SET panic_frozen = 1 WHERE id = ?", ["purse_maaz"]);
     const response = await reset(new Request("http://localhost/api/demo/reset", { method: "POST", headers: { cookie: await demoCookieHeader() } }));
     expect(response.status).toBe(200);
     expect(((await response.json()) as { explanation: string }).explanation).toContain("stays linked");
-    expect(await getVault(await getDb(), "purse_maya")).toMatchObject({ paymentTokenId: "VAULT-REAL-1", status: "vaulted" });
+    expect(await getVault(await getDb(), "purse_maaz")).toMatchObject({ paymentTokenId: "VAULT-REAL-1", status: "vaulted" });
   });
 
   it("clears old notices, and does not claim a mock wallet stayed linked", async () => {
     const sql = await database({ PAYPAL_MODE: "live", AGENTPURSE_SANDBOX_DEMO: "1", DEMO_SESSION_SECRET: "test-secret" });
-    await sql.exec("INSERT INTO notifications (id, owner_id, intent_id, title, body, delivered, created_at) VALUES ('note_old', 'purse_maya', NULL, 'Old', 'Old', 0, ?)", [NOW.toISOString()]);
-    const vault = await getVault(sql, "purse_maya");
+    await sql.exec("INSERT INTO notifications (id, owner_id, intent_id, title, body, delivered, created_at) VALUES ('note_old', 'purse_maaz', NULL, 'Old', 'Old', 0, ?)", [NOW.toISOString()]);
+    const vault = await getVault(sql, "purse_maaz");
     if (!vault) throw new Error("expected a vault");
-    await saveVault(sql, { ...vault, paymentTokenId: "VAULT-MOCK-MAYA", status: "vaulted" });
+    await saveVault(sql, { ...vault, paymentTokenId: "VAULT-MOCK-MAAZ", status: "vaulted" });
     const response = await reset(new Request("http://localhost/api/demo/reset", { method: "POST", headers: { cookie: await demoCookieHeader() } }));
     expect(((await response.json()) as { explanation: string }).explanation).toContain("Link PayPal");
     expect(await (await getDb()).get("SELECT id FROM notifications WHERE id = 'note_old'")).toBeUndefined();
@@ -270,11 +293,21 @@ describe("demo routes", () => {
 
   it("gives a browser the demo session in sandbox demo mode only", async () => {
     await database({ PAYPAL_MODE: "live", AGENTPURSE_SANDBOX_DEMO: "1", DEMO_SESSION_SECRET: "test-secret" });
-    const allowed = await middleware(new NextRequest("http://localhost/purses/purse_maya"));
+    const allowed = await middleware(new NextRequest("http://localhost/purses/purse_maaz"));
     expect(allowed.cookies.get("ap_demo")?.value).toBeTruthy();
     delete process.env.AGENTPURSE_SANDBOX_DEMO;
-    const closed = await middleware(new NextRequest("http://localhost/purses/purse_maya"));
+    const closed = await middleware(new NextRequest("http://localhost/purses/purse_maaz"));
     expect(closed.cookies.get("ap_demo")).toBeUndefined();
+  });
+
+  it("replaces a session left over from a previous owner, and keeps a current one", async () => {
+    await database({});
+    const stale = await signDemoSession("purse_" + "maya");
+    const old = new NextRequest("http://localhost/purses/purse_maaz", { headers: { cookie: `ap_demo=${stale}` } });
+    const replaced = (await middleware(old)).cookies.get("ap_demo")?.value;
+    expect(await readDemoSession(replaced)).toBe("purse_maaz");
+    const current = new NextRequest("http://localhost/purses/purse_maaz", { headers: { cookie: await demoCookieHeader() } });
+    expect((await middleware(current)).cookies.get("ap_demo")).toBeUndefined();
   });
 });
 

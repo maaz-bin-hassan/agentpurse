@@ -33,7 +33,7 @@ export function approvalPush(intent: Pick<IntentRecord, "id" | "merchantName" | 
     title: `Approve ${intent.merchantName ?? "a payment"}?`,
     body: `${formatMoney(intent.amountCents ?? 0, intent.currency ?? "USD")} is waiting for your signature.`,
     intentId: intent.id,
-    url: "/purses/purse_maya",
+    url: "/purses/purse_maaz",
   };
 }
 

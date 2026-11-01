@@ -7,7 +7,7 @@ describe("household view", () => {
   it("shows four allowances, a vaulted wallet, and the denied flight", async () => {
     const sql = await openDatabase(":memory:");
     await seedDemo(sql, { now: new Date("2026-10-30T12:00:00.000Z") });
-    const view = await loadHousehold(sql, "purse_maya");
+    const view = await loadHousehold(sql, "purse_maaz");
     expect(view?.agents).toHaveLength(4);
     expect(view?.vault?.status).toBe("vaulted");
     expect(view?.agents.find((agent) => agent.name === "Stack")?.spentCents).toBe(1200);

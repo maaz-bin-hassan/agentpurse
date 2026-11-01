@@ -34,7 +34,7 @@ it("rejects an anonymous MCP call and lists tools for Grocer's key", async () =>
       headers: {
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
-        authorization: "Bearer agpk_grocer_demo_maya",
+        authorization: "Bearer agpk_grocer_demo_maaz",
       },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
     }),

@@ -19,12 +19,12 @@ describe("demo spend flow", () => {
     expect(oats.body.ok).toBe(true);
     if (!oats.body.ok) return;
     expect(oats.body.intent.status).toBe("captured");
-    expect(oats.body.order?.payment_source?.paypal?.vault_id).toBe("VAULT-MOCK-MAYA");
+    expect(oats.body.order?.payment_source?.paypal?.vault_id).toBe("VAULT-MOCK-MAAZ");
     expect(oats.body.order?.purchase_units[0]?.custom_id).toBe(oats.body.intent.id);
     expect(oats.body.order?.purchase_units[0]?.payee?.email_address).toContain("@");
     expect(await netSpentCents(sql, "agent_grocer")).toBe(1840);
     const stored = await getPaypalOrderByCustomId(sql, oats.body.intent.id);
-    expect(stored?.vaultId).toBe("VAULT-MOCK-MAYA");
+    expect(stored?.vaultId).toBe("VAULT-MOCK-MAAZ");
 
     const flight = await requestPurchase(sql, "agent_wayfinder", "Book a $900 flight to Lisbon on SkyAir", options);
     expect(flight.body.ok).toBe(true);
@@ -57,14 +57,14 @@ describe("demo spend flow", () => {
     if (!paused.body.ok) return;
     expect(paused.body.explanation).toContain("paused");
 
-    await panicFreeze(sql, "purse_maya", true);
+    await panicFreeze(sql, "purse_maaz", true);
     const frozen = await requestPurchase(sql, "agent_stack", "Pay CloudApps $9 for extra storage", options);
     expect(frozen.body.ok).toBe(true);
     if (!frozen.body.ok) return;
     expect(frozen.body.explanation).toContain("panic");
-    await panicFreeze(sql, "purse_maya", false);
+    await panicFreeze(sql, "purse_maaz", false);
 
-    await revokeVault(sql, "purse_maya", options);
+    await revokeVault(sql, "purse_maaz", options);
     const afterRevoke = await requestPurchase(sql, "agent_grocer", "Buy oat milk from Green Grocer for $4", options);
     expect(afterRevoke.body.ok).toBe(true);
     if (!afterRevoke.body.ok) return;

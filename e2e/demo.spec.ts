@@ -7,7 +7,7 @@ test("judge demo: injection block, approval, and panic freeze", async ({ page })
   await expect(page.getByRole("status")).toContainText("Blocked");
   await expect(page.getByRole("status")).toContainText("gift cards");
 
-  await page.goto("/purses/purse_maya");
+  await page.goto("/purses/purse_maaz");
   await expect(page.getByText("does not hold a balance")).toBeVisible();
   await expect(page.getByText("Linked")).toBeVisible();
 
@@ -15,7 +15,7 @@ test("judge demo: injection block, approval, and panic freeze", async ({ page })
   const wayfinder = page.locator("form").filter({ hasText: "Wayfinder" });
   await wayfinder.getByRole("button", { name: "Hold a $75 seat from Metro Rail" }).click();
   await wayfinder.getByRole("button", { name: "Ask the clerk" }).click();
-  await expect(wayfinder.getByRole("status")).toContainText("Held for Maya Chen", { timeout: 20_000 });
+  await expect(wayfinder.getByRole("status")).toContainText("Held for Maaz Hassan", { timeout: 20_000 });
   await page.getByRole("button", { name: "Approve and pay" }).click();
   await expect(page.getByText("Nothing is held.")).toBeVisible({ timeout: 20_000 });
 

@@ -4,7 +4,7 @@ import { actorFromBearer } from "@/src/mcp/protocol";
 import { DEMO_COOKIE, readDemoSession, signDemoSession } from "@/src/server/demo-session";
 import { fail } from "@/src/server/http";
 
-export const DEMO_OWNER_ID = "purse_maya";
+export const DEMO_OWNER_ID = "purse_maaz";
 export { DEMO_COOKIE, signDemoSession };
 
 const buckets = new Map<string, { count: number; reset: number }>();

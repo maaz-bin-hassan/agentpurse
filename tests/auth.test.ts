@@ -18,12 +18,12 @@ describe("route auth", () => {
     expect(header.startsWith("ap_demo=")).toBe(true);
 
     const blocked = await panic(
-      new Request("http://localhost/api/households/purse_maya/panic", {
+      new Request("http://localhost/api/households/purse_maaz/panic", {
         method: "POST",
         headers: { authorization: `Bearer ${DEMO_KEYS.agent_grocer}`, "content-type": "application/json" },
         body: JSON.stringify({ frozen: true }),
       }),
-      { params: Promise.resolve({ id: "purse_maya" }) },
+      { params: Promise.resolve({ id: "purse_maaz" }) },
     );
     expect(blocked.status).toBe(403);
 

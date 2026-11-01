@@ -11,13 +11,13 @@ async function main() {
     console.log(`migrations applied: ${report.applied.length ? report.applied.join(", ") : "(none)"}`);
     console.log(`migrations already recorded: ${report.skipped.length ? report.skipped.join(", ") : "(none)"}`);
     await seedDemo(sql, { ifMissing: true });
-    const household = await loadHousehold(sql, "purse_maya");
-    if (!household) throw new Error("Maya's household did not load after seeding.");
+    const household = await loadHousehold(sql, "purse_maaz");
+    if (!household) throw new Error("Maaz's household did not load after seeding.");
     const flight = await getIntent(sql, "intent_skyair");
     if (flight?.status !== "denied" || flight.paypalOrderId) throw new Error("The sample SkyAir flight is not denied.");
     const spent = await netSpentCents(sql, "agent_stack");
     if (spent !== 1200) throw new Error(`Stack's sample receipt is ${spent} cents, expected 1200.`);
-    if (household.vault?.status !== "vaulted") throw new Error("Maya's PayPal vault is not linked.");
+    if (household.vault?.status !== "vaulted") throw new Error("Maaz's PayPal vault is not linked.");
     if (household.agents.length !== 4) throw new Error(`Expected 4 agents, found ${household.agents.length}.`);
     console.log(`household: ${household.owner.name} (${household.owner.id}), vault ${household.vault.status}, agents ${household.agents.map((agent) => agent.name).join(", ")}`);
     console.log(`sample flight: ${flight.status}; Stack net spend: ${spent} cents`);

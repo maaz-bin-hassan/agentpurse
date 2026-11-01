@@ -14,7 +14,7 @@ describe("PayPal mock", () => {
       id: (prefix) => `${prefix}TEST`,
     });
     const setup = await paypal.createSetupToken({
-      ownerId: "purse_maya",
+      ownerId: "purse_maaz",
       returnUrl: "http://localhost:3000/paypal/return",
       cancelUrl: "http://localhost:3000/paypal/cancel",
       description: "AgentPurse",
@@ -134,7 +134,7 @@ describe("PayPal live adapter", () => {
     });
     const paypal = createLivePayPal({ clientId: "client", clientSecret: "secret", fetchImpl: fetchImpl as unknown as typeof fetch });
     const setup = await paypal.createSetupToken({
-      ownerId: "purse_maya",
+      ownerId: "purse_maaz",
       returnUrl: "https://example.com/return",
       cancelUrl: "https://example.com/cancel",
       description: "AgentPurse",

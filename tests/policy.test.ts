@@ -3,7 +3,7 @@ import { evaluateSpend, type ClerkInput } from "@/src/policy/engine";
 
 function base(overrides: Partial<ClerkInput> = {}): ClerkInput {
   return {
-    ownerName: "Maya Chen",
+    ownerName: "Maaz Hassan",
     agentName: "Wayfinder",
     agentStatus: "active",
     panicFrozen: false,
@@ -37,7 +37,7 @@ describe("purse clerk", () => {
     const result = evaluateSpend(base({ amountCents: 5000 }));
     expect(result.decision).toBe("needs_approval");
     expect(result.reasons.map((reason) => reason.code)).toEqual(["approval_threshold"]);
-    expect(result.explanation).toContain("Held for Maya Chen");
+    expect(result.explanation).toContain("Held for Maaz Hassan");
   });
 
   it("holds an untrusted merchant under the line", () => {

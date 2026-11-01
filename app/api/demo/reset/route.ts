@@ -19,9 +19,9 @@ export async function POST(request: Request) {
   const keptWallet = Boolean(vault?.paymentTokenId && !vault.paymentTokenId.startsWith("VAULT-MOCK"));
   if (vault && keptWallet) await saveVault(gate.sql, vault);
   const explanation = !sandbox
-    ? "Maya's household was restored. Allowances, the vault, and the sample receipt are back."
+    ? "Maaz's household was restored. Allowances, the vault, and the sample receipt are back."
     : keptWallet
-      ? "Maya's ledger was restored. The linked PayPal wallet stays linked."
-      : "Maya's ledger was restored. Click Link PayPal to connect a sandbox wallet.";
+      ? "Maaz's ledger was cleared. The linked PayPal wallet stays linked."
+      : "Maaz's ledger was cleared. Click Link PayPal to connect a sandbox wallet.";
   return asResponse({ status: 200, body: { ok: true, explanation } });
 }

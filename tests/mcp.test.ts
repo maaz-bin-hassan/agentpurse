@@ -47,7 +47,7 @@ describe("MCP", () => {
     const verifier = "a".repeat(50);
     const code = await issueCode(sql, {
       clientId: client.client_id,
-      ownerId: "purse_maya",
+      ownerId: "purse_maaz",
       redirectUri: "https://grok.example/callback",
       codeChallenge: codeChallenge(verifier),
       method: "S256",
@@ -55,7 +55,7 @@ describe("MCP", () => {
     });
     const token = await exchangeCode(sql, { code, verifier, redirectUri: "https://grok.example/callback", clientId: client.client_id });
     const actor = await actorFromBearer(sql, `Bearer ${token.access_token}`);
-    expect(actor?.ownerId).toBe("purse_maya");
+    expect(actor?.ownerId).toBe("purse_maaz");
     if (!actor) return;
     const budget = await handleMcpMessage(sql, actor, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "get_budget", arguments: {} } });
     const rows = JSON.parse((budget as { result: { content: Array<{ text: string }> } }).result.content[0].text) as Array<{ name: string }>;

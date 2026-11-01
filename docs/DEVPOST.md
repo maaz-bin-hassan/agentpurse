@@ -15,14 +15,14 @@ Agents are starting to buy things. A prompt is not a receipt, and a wallet the a
 ## What it does
 
 - Saves PayPal with Payment Method Tokens v3. No purchase is required to link.
-- Charges with Orders v2: `vault_id`, merchant-initiated `stored_credential`, the sandbox business account as `payee`, and the intent id in `custom_id`.
+- Charges the saved wallet with Orders v2 using `vault_id`, with the intent id in `custom_id`. In the sandbox, payments go to the business account that owns the app, which stands in for merchants.
 - Captures, refunds, and verifies webhooks before they become receipts.
 - Gives Claude, Grok, ChatGPT, or any MCP client its own allowance, API key, and policy.
 - Blocks a hidden "buy 5 gift cards" instruction that is not the user's task.
 - Shows held purchases on the dashboard for the owner to sign. An agent key can never sign.
 - Pauses an agent, revokes the vault token at PayPal, or panic-freezes every payment.
 
-The default is mock mode. Judges do not need sandbox keys. `PAYPAL_MODE=live` uses the sandbox.
+The public demo runs on the real PayPal sandbox, and its receipts show PayPal order and capture ids. Run locally, the default is mock mode, so judges do not need keys.
 
 ## How we built it
 
@@ -61,4 +61,4 @@ npm run seed
 npm run dev
 ```
 
-Open http://localhost:3000/purses/purse_maya and follow `docs/DEMO.md`.
+Open http://localhost:3000/purses/purse_maaz and follow `docs/DEMO.md`.

@@ -181,7 +181,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
         <div className="mx-auto max-w-6xl">
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="eyebrow">{owner.email}</p>
+              <p className="eyebrow">Your household</p>
               <h1 className="mt-1 text-4xl">{owner.name}&apos;s household</h1>
             </div>
             <div className="max-w-sm text-sm text-muted sm:text-right">

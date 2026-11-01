@@ -30,10 +30,10 @@ Demo agent keys:
 
 | Agent | `AGENTPURSE_API_KEY` |
 | --- | --- |
-| Grocer | `agpk_grocer_demo_maya` |
-| Wayfinder | `agpk_wayfinder_demo_maya` |
-| Stack | `agpk_stack_demo_maya` |
-| Handy | `agpk_handy_demo_maya` |
+| Grocer | `agpk_grocer_demo_maaz` |
+| Wayfinder | `agpk_wayfinder_demo_maaz` |
+| Stack | `agpk_stack_demo_maaz` |
+| Handy | `agpk_handy_demo_maaz` |
 
 ## Claude Desktop and Cursor (stdio)
 
@@ -43,7 +43,7 @@ Demo agent keys:
     "agentpurse": {
       "command": "npx",
       "args": ["tsx", "src/mcp/stdio.ts"],
-      "env": { "AGENTPURSE_API_KEY": "agpk_grocer_demo_maya" }
+      "env": { "AGENTPURSE_API_KEY": "agpk_grocer_demo_maaz" }
     }
   }
 }
@@ -58,7 +58,7 @@ Run it from this repository after `npm install`. The process speaks MCP stdio fr
   "mcpServers": {
     "agentpurse": {
       "url": "http://localhost:3000/mcp",
-      "headers": { "Authorization": "Bearer agpk_grocer_demo_maya" }
+      "headers": { "Authorization": "Bearer agpk_grocer_demo_maaz" }
     }
   }
 }
@@ -74,7 +74,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maya` and `Accept: application/json, text/event-stream` returns the five tools. `tests/mcp.test.ts` covers the tool calls. `npm run mcp` is the stdio process for Claude Desktop.
+That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maaz` and `Accept: application/json, text/event-stream` returns the five tools. `tests/mcp.test.ts` covers the tool calls. `npm run mcp` is the stdio process for Claude Desktop.
 
 ## Example
 

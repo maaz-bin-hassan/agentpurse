@@ -10,8 +10,8 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 | --- | --- | --- |
 | Public GitHub repo created after 1 October 2026 | Done. Created 29 October 2026. | This repository |
 | MIT license visible in the repo | Done. `LICENSE` is MIT, copyright 2026 MaAz Khan Hassan. | `LICENSE` |
-| Project uses PayPal and AI | Done in code. Vault + Orders v2, plus a guard. Mock mode needs no keys. The sandbox run is still to do. | `docs/ARCHITECTURE.md` |
-| Working demo judges can run | Live at https://agentpurse.vercel.app in mock mode. Sandbox mode is next. | README **For judges** |
+| Project uses PayPal and AI | Done. Vault + Orders v2 ran on the real sandbox, plus a guard. Mock mode needs no keys. | `docs/ARCHITECTURE.md` |
+| Working demo judges can run | Live at https://agentpurse.vercel.app on the PayPal sandbox. | README **For judges** |
 | No real money, no real retailers | Done. Merchants are fictional. Mock mode never calls PayPal. | Seed data |
 | Video under 3 minutes, no copyrighted music | Not recorded yet. Script and shot list are ready. | `docs/DEMO.md` |
 | List every AI tool used | Done, including Cursor and Grok Bot. | `docs/AI-TOOLS.md` |
@@ -20,7 +20,7 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 
 ## Only MaAz can do these
 
-1. Create two PayPal sandbox accounts with the country set to the United States: one personal (the payer Maya links) and one business (the merchant `PAYPAL_MERCHANT_EMAIL`).
+1. Create two PayPal sandbox accounts with the country set to the United States: one personal (the payer Maaz links) and one business (the merchant `PAYPAL_MERCHANT_EMAIL`).
 2. Create a REST app on developer.paypal.com and copy the sandbox client id and secret into the host’s env. Do not commit them.
 3. Create a free Supabase project, run `supabase/migrations/0002_agentic_commerce.sql`, and set `DATABASE_URL` to the pooler URI (port 6543) for Vercel.
 4. Optional: a free Groq or Gemini key if you want `AI_MODE=live`. The demo does not need it.

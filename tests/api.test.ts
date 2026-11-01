@@ -50,6 +50,6 @@ it("rejects an anonymous spend and captures one with the demo session", async ()
   const body = await response.json();
   expect(body.ok).toBe(true);
   expect(body.intent.status).toBe("captured");
-  expect(body.order.payment_source.paypal.vault_id).toBe("VAULT-MOCK-MAYA");
+  expect(body.order.payment_source.paypal.vault_id).toBe("VAULT-MOCK-MAAZ");
   expect(body.order.purchase_units[0].custom_id).toBe(body.intent.id);
 });

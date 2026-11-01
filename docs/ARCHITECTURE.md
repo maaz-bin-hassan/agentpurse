@@ -24,10 +24,7 @@ An allowance is a ledger cap on one agent. Raising it does not call PayPal. Spen
 A charge uses Orders v2:
 
 - `payment_source.paypal.vault_id` from Payment Method Tokens v3
-- `stored_credential.payment_initiator = MERCHANT`
-- `stored_credential.usage = SUBSEQUENT`
-- `stored_credential.usage_pattern = UNSCHEDULED_POSTPAID`
-- `purchase_units[0].payee.email_address` is the merchant's sandbox business account
+- No `payee` and no `stored_credential` on a live wallet charge. PayPal refused the charge with both set (`BILLING_AGREEMENT_NOT_FOUND`), and accepted it without them. The payment goes to the business account that owns the REST app
 - `purchase_units[0].custom_id` is the intent id
 
 The vault itself is created with no purchase: setup token, payer approval, payment token. Revoke calls `DELETE /v3/vault/payment-tokens/{id}`.
@@ -84,4 +81,4 @@ One SQL dialect, two drivers. `?` placeholders are rewritten to `$1` for Postgre
 | `PAYPAL_MODE` | `live` | `api-m.sandbox.paypal.com` |
 | `AI_MODE` | `mock` | Local parser, compiler, and guard |
 | `DATABASE_URL` | unset | SQLite at `data/agentpurse.db` |
-| `AGENTPURSE_AUTO_SEED` | on | Seed Maya when there is no owner |
+| `AGENTPURSE_AUTO_SEED` | on | Seed Maaz when there is no owner |

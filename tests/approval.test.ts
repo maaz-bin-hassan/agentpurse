@@ -22,7 +22,7 @@ describe("approvals", () => {
     expect(approvalPush(hold.body.intent).body).toContain("$75.00");
     expect(approvalPush(hold.body.intent).title).toContain("Metro Rail");
     await expect(
-      verifyAuthentication(sql, "purse_maya", {
+      verifyAuthentication(sql, "purse_maaz", {
         id: "not-a-passkey",
         rawId: "not-a-passkey",
         type: "public-key",

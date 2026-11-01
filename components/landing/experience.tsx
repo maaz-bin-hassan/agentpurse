@@ -11,8 +11,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const STEPS: Array<{ title: string; body: string; stamp?: { tone: StampTone; label: string } }> = [
   { title: "The agent asks", body: "Wayfinder wants a $75 seat. It can write the cheque. It cannot sign it." },
   { title: "The guard reads", body: "A hidden line on the page says to buy gift cards. That is not the task, so it goes nowhere." },
-  { title: "The clerk decides", body: "$75 is over Maya’s $50 line, so the cheque waits for a person.", stamp: { tone: "hold", label: "Held" } },
-  { title: "PayPal pays", body: "Maya approves. PayPal pays Metro Rail. The purse never held the money.", stamp: { tone: "allow", label: "Paid" } },
+  { title: "The clerk decides", body: "$75 is over Maaz’s $50 line, so the cheque waits for a person.", stamp: { tone: "hold", label: "Held" } },
+  { title: "PayPal pays", body: "Maaz approves. PayPal pays Metro Rail. The purse never held the money.", stamp: { tone: "allow", label: "Paid" } },
 ];
 
 const CREW = [
@@ -25,7 +25,7 @@ const CREW = [
 const SCENES = [
   { id: "allow", label: "Buy oat milk for $18.40", result: "Paid", agent: "agent_grocer", name: "Grocer", payee: "Green Grocer", amount: "$18.40", detail: "Inside the grocery allowance, so the clerk lets it through.", tone: "allow" },
   { id: "block", label: "Obey a hidden line on the page", result: "Blocked", agent: "agent_grocer", name: "Grocer", payee: "Lucky Chips", amount: "$500.00", detail: "The page asked for gift cards. The task was oat milk.", tone: "deny" },
-  { id: "hold", label: "Book a $75 seat", result: "Held", agent: "agent_wayfinder", name: "Wayfinder", payee: "Metro Rail", amount: "$75.00", detail: "Over the $50 line. Maya has to say yes.", tone: "hold" },
+  { id: "hold", label: "Book a $75 seat", result: "Held", agent: "agent_wayfinder", name: "Wayfinder", payee: "Metro Rail", amount: "$75.00", detail: "Over the $50 line. Maaz has to say yes.", tone: "hold" },
 ] as const;
 
 const PLANS = [
@@ -88,7 +88,7 @@ export function LandingExperience() {
                 Link PayPal once and set an allowance for each agent. A clerk written in plain code allows, holds, or refuses every purchase, and no model can talk it out of a no.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link className="btn" href="/purses/purse_maya">Open Maya&apos;s household</Link>
+                <Link className="btn" href="/purses/purse_maaz">Open Maaz&apos;s household</Link>
                 <Link className="btn secondary" href="/demo/injection">Watch a page get caught</Link>
               </div>
             </div>
@@ -138,13 +138,13 @@ export function LandingExperience() {
                 number="000142"
                 payee={scene.payee}
                 amount={scene.amount}
-                memo={isPaidHold ? "Maya approved. PayPal paid Metro Rail." : scene.detail}
+                memo={isPaidHold ? "Maaz approved. PayPal paid Metro Rail." : scene.detail}
                 agentId={scene.agent}
                 agentName={scene.name}
                 stamp={{ tone: isPaidHold ? "allow" : scene.tone, label: isPaidHold ? "Paid" : scene.result }}
               >
                 {scene.id === "hold" && !approved ? (
-                  <button type="button" className="btn mt-4" onClick={() => setApproved(true)}>Approve as Maya</button>
+                  <button type="button" className="btn mt-4" onClick={() => setApproved(true)}>Approve as Maaz</button>
                 ) : null}
               </Cheque>
             </div>
@@ -223,8 +223,8 @@ export function LandingExperience() {
       <section className="band py-16 text-center">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-4xl sm:text-5xl">The checkbook is open.</h2>
-          <p className="mx-auto mt-3 max-w-lg text-on-pine-muted">Maya’s PayPal is already vaulted. Grocer, Wayfinder, Stack, and Handy are waiting with allowances.</p>
-          <Link className="btn mt-6" href="/purses/purse_maya">Enter the dashboard</Link>
+          <p className="mx-auto mt-3 max-w-lg text-on-pine-muted">Maaz’s PayPal is already vaulted. Grocer, Wayfinder, Stack, and Handy are waiting with allowances.</p>
+          <Link className="btn mt-6" href="/purses/purse_maaz">Enter the dashboard</Link>
         </div>
       </section>
     </div>

@@ -2,7 +2,7 @@
 
 Build one phase at a time. Each phase is done only when its acceptance checks pass and the branch is pushed. Mock mode is the demo: no PayPal sandbox keys, no model keys, no Supabase project.
 
-The product is a purse that AI agents spend from. Maya Chen funds one purse with PayPal. Four agents (groceries, travel, software, household) spend against envelopes. A clerk allows, holds, or denies. The story is in the seed data at `/purses/purse_maya`.
+The product is a purse that AI agents spend from. Maaz Hassan funds one purse with PayPal. Four agents (groceries, travel, software, household) spend against envelopes. A clerk allows, holds, or denies. The story is in the seed data at `/purses/purse_maaz`.
 
 ## Phase 0 — Scaffold
 
@@ -25,7 +25,7 @@ Acceptance:
 SQLite via `node:sqlite`. Schema from `docs/ARCHITECTURE.md`. Postgres twin in `supabase/migrations/0001_agentpurse.sql` for a later hosted project. The app does not connect to Supabase.
 
 - `npm run seed` is safe to run twice
-- Seed **Maya's Household** (`purse_maya`) with a $250 top-up, a captured $12 CloudApps payment, and a denied $900 SkyAir attempt
+- Seed **Maaz's Household** (`purse_maaz`) with a $250 top-up, a captured $12 CloudApps payment, and a denied $900 SkyAir attempt
 - Envelopes: Groceries weekly $80, Travel monthly $400, Software monthly $40, Household monthly $100
 - Caps: $150 per payment, $300 per day, human approval at $50
 - Agents: Grocer, Wayfinder, Stack, Handy
@@ -33,7 +33,7 @@ SQLite via `node:sqlite`. Schema from `docs/ARCHITECTURE.md`. Postgres twin in `
 
 Acceptance:
 
-- Re-running the seed leaves one Maya purse and the same balances
+- Re-running the seed leaves one Maaz purse and the same balances
 - A repository round-trip test reads the seeded denial and the funded balance
 
 ## Phase 2 — Purse clerk
@@ -121,13 +121,13 @@ AgentPurse does not hold money. Each agent has a ledger allowance. Raising an al
 - SQLite remains the default when `DATABASE_URL` is unset
 - Postgres (`pg`) is used when `DATABASE_URL` is set (Supabase). The same SQL is covered with PGlite in tests
 - Tables: owners, agents (own allowance, API key hash, policy), vaults, intents, receipts, quotes
-- Maya's household stays at `/purses/purse_maya`. Grocer, Wayfinder, Stack, and Handy each have an allowance. Stack's $12 CloudApps receipt is history. The $900 SkyAir attempt is still denied, and no order exists for it
+- Maaz's household stays at `/purses/purse_maaz`. Grocer, Wayfinder, Stack, and Handy each have an allowance. Stack's $12 CloudApps receipt is history. The $900 SkyAir attempt is still denied, and no order exists for it
 
 Acceptance:
 
 - `npm test` passes with no `DATABASE_URL`
 - A PGlite test applies the same schema and reads the seeded denial
-- Re-seeding does not duplicate Maya or her receipts
+- Re-seeding does not duplicate the household or its receipts
 
 ## Phase 8 — PayPal Vault and merchant-initiated charges
 
@@ -202,7 +202,7 @@ Household page shows allowances (not a balance we hold), the linked PayPal walle
 
 Acceptance:
 
-- View test: Maya has four agents, a vaulted wallet, the CloudApps receipt, and the SkyAir denial
+- View test: Maaz has four agents, a vaulted wallet, the CloudApps receipt, and the SkyAir denial
 - Browser pass of allow, injection block, approval, and panic
 
 ## Phase 14 — Grok Bot plugin, deploy, submission docs

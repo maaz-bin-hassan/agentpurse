@@ -11,7 +11,7 @@ Migrations live in `supabase/migrations` and run in filename order:
 
 `npm run db:migrate` applies any file that is not already recorded in `schema_migrations`. It uses `CREATE TABLE IF NOT EXISTS` and does not drop tables or delete rows. A second run records nothing new.
 
-`npm run db:seed` applies those migrations, then inserts Maya Chen's household only where the demo rows are missing. It does not delete existing rows. The in-app Reset demo button still replaces Maya's sample rows on purpose; this script does not.
+`npm run db:seed` applies those migrations, then inserts Maaz Hassan's household only where the demo rows are missing. It does not delete existing rows. The in-app Reset demo button still replaces Maaz's sample rows on purpose; this script does not.
 
 Both commands read `DATABASE_URL` when it is set and otherwise use the local SQLite file (`AGENTPURSE_DB`, or `data/agentpurse.db`). They print the dialect, never the connection string.
 
@@ -39,7 +39,7 @@ From this directory, after `npm install`:
 npx vercel
 ```
 
-Accept the defaults. Then set the environment variables below in the Vercel project and run `npx vercel --prod`. The app boots in mock mode with no secrets. The first request seeds Maya if `AGENTPURSE_AUTO_SEED` is not `0`.
+Accept the defaults. Then set the environment variables below in the Vercel project and run `npx vercel --prod`. The app boots in mock mode with no secrets. The first request seeds Maaz if `AGENTPURSE_AUTO_SEED` is not `0`.
 
 Render is the other free option: the included `render.yaml` is the blueprint. Create the service from that file, set `DATABASE_URL`, and deploy.
 
@@ -56,7 +56,7 @@ PUBLIC_BASE_URL=https://<your-app>.vercel.app
 AGENTPURSE_AUTO_SEED=1
 ```
 
-3. Deploy. Open `https://<your-app>.vercel.app/purses/purse_maya`.
+3. Deploy. Open `https://<your-app>.vercel.app/purses/purse_maaz`.
 
 SQLite on Vercel does not persist. Do not deploy the mock demo without `DATABASE_URL`.
 

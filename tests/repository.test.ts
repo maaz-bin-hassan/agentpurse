@@ -8,13 +8,13 @@ import { seedDemo } from "@/src/db/seed";
 const NOW = new Date("2026-10-30T12:00:00.000Z");
 
 describe("seed and repository", () => {
-  it("loads Maya once on SQLite and keeps allowances as a ledger", async () => {
+  it("loads Maaz once on SQLite and keeps allowances as a ledger", async () => {
     const sql = await openDatabase(":memory:");
     await seedDemo(sql, { now: NOW });
     await seedDemo(sql, { now: NOW });
-    const owner = await getOwner(sql, "purse_maya");
-    expect(owner?.name).toBe("Maya Chen");
-    expect(await listAgents(sql, "purse_maya")).toHaveLength(4);
+    const owner = await getOwner(sql, "purse_maaz");
+    expect(owner?.name).toBe("Maaz Hassan");
+    expect(await listAgents(sql, "purse_maaz")).toHaveLength(4);
     const flight = await getIntent(sql, "intent_skyair");
     expect(flight?.status).toBe("denied");
     expect(flight?.paypalOrderId).toBeNull();

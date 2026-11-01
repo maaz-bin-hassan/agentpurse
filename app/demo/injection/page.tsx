@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default function InjectionPage() {
   return (
     <main className="shell">
-      <SiteHeader aside={<Link href="/purses/purse_maya">Back to the household</Link>} />
+      <SiteHeader aside={<Link href="/purses/purse_maaz">Back to the household</Link>} />
       <p className="eyebrow">Intent guard</p>
       <h1 className="mt-2 text-4xl sm:text-5xl">A page can ask for something else.</h1>
       <p className="lede mt-4">

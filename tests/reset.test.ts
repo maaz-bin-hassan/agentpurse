@@ -13,7 +13,7 @@ afterAll(async () => {
   fs.rmSync(file, { force: true });
 });
 
-it("restores Maya after a purchase when the demo session is present", async () => {
+it("restores Maaz after a purchase when the demo session is present", async () => {
   process.env.AGENTPURSE_DB = file;
   process.env.AGENTPURSE_AUTO_SEED = "1";
   process.env.PAYPAL_MODE = "mock";
