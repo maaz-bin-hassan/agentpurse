@@ -155,9 +155,8 @@ describe("PayPal live adapter", () => {
     const orderCall = calls.find((call) => call.url.endsWith("/v2/checkout/orders"));
     const body = JSON.parse(String(orderCall?.init?.body));
     expect(body.purchase_units[0].custom_id).toBe("intent_1");
-    expect(body.purchase_units[0].payee.email_address).toBe("sb-merchant@business.example.com");
-    expect(body.payment_source.paypal.vault_id).toBe("VAULT1");
-    expect(body.payment_source.paypal.stored_credential.payment_initiator).toBe("MERCHANT");
+    expect(body.purchase_units[0].payee).toBeUndefined();
+    expect(body.payment_source).toEqual({ paypal: { vault_id: "VAULT1" } });
     await paypal.deletePaymentToken("VAULT1");
     expect(calls.some((call) => call.url.endsWith("/v3/vault/payment-tokens/VAULT1") && call.init?.method === "DELETE")).toBe(true);
     const verified = await paypal.verifyWebhookSignature({

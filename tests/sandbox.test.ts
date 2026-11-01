@@ -83,6 +83,18 @@ describe("live PayPal charges", () => {
     await sql.close();
   });
 
+  it("sends PayPal's documented wallet charge: only the vault id, paid to the app's own account", async () => {
+    const sql = await liveHousehold();
+    const fake = fakePayPal();
+    await requestPurchase(sql, "agent_grocer", "Buy oat milk from Green Grocer for $4", { now: NOW, env: LIVE, paypal: livePayPal(sql, fake.fetchImpl) });
+    const call = fake.calls.find((item) => item.path === "/v2/checkout/orders");
+    const body = JSON.parse(call?.body ?? "{}") as { payment_source: unknown; purchase_units: Array<Record<string, unknown>> };
+    expect(body.payment_source).toEqual({ paypal: { vault_id: "VAULT-REAL-1" } });
+    expect(body.purchase_units[0]).not.toHaveProperty("payee");
+    expect(body.purchase_units[0].custom_id).toBeTruthy();
+    await sql.close();
+  });
+
   it("lets a verified webhook find a live order", async () => {
     const sql = await liveHousehold();
     const fake = fakePayPal();
@@ -241,7 +253,19 @@ describe("demo routes", () => {
     await sql.exec("UPDATE owners SET panic_frozen = 1 WHERE id = ?", ["purse_maya"]);
     const response = await reset(new Request("http://localhost/api/demo/reset", { method: "POST", headers: { cookie: await demoCookieHeader() } }));
     expect(response.status).toBe(200);
+    expect(((await response.json()) as { explanation: string }).explanation).toContain("stays linked");
     expect(await getVault(await getDb(), "purse_maya")).toMatchObject({ paymentTokenId: "VAULT-REAL-1", status: "vaulted" });
+  });
+
+  it("clears old notices, and does not claim a mock wallet stayed linked", async () => {
+    const sql = await database({ PAYPAL_MODE: "live", AGENTPURSE_SANDBOX_DEMO: "1", DEMO_SESSION_SECRET: "test-secret" });
+    await sql.exec("INSERT INTO notifications (id, owner_id, intent_id, title, body, delivered, created_at) VALUES ('note_old', 'purse_maya', NULL, 'Old', 'Old', 0, ?)", [NOW.toISOString()]);
+    const vault = await getVault(sql, "purse_maya");
+    if (!vault) throw new Error("expected a vault");
+    await saveVault(sql, { ...vault, paymentTokenId: "VAULT-MOCK-MAYA", status: "vaulted" });
+    const response = await reset(new Request("http://localhost/api/demo/reset", { method: "POST", headers: { cookie: await demoCookieHeader() } }));
+    expect(((await response.json()) as { explanation: string }).explanation).toContain("Link PayPal");
+    expect(await (await getDb()).get("SELECT id FROM notifications WHERE id = 'note_old'")).toBeUndefined();
   });
 
   it("gives a browser the demo session in sandbox demo mode only", async () => {

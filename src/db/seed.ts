@@ -46,6 +46,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       await tx.exec("DELETE FROM quotes WHERE agent_id IN (SELECT id FROM agents WHERE owner_id = ?)", [DEMO_OWNER_ID]);
       await tx.exec("DELETE FROM intents WHERE owner_id = ?", [DEMO_OWNER_ID]);
       await tx.exec("DELETE FROM audit_events WHERE owner_id = ?", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM notifications WHERE owner_id = ?", [DEMO_OWNER_ID]);
       await tx.exec("DELETE FROM mock_payment_tokens WHERE id = ?", [DEMO_VAULT_ID]);
       await tx.exec("DELETE FROM owners WHERE id = ?", [DEMO_OWNER_ID]);
     }

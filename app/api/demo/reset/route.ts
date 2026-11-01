@@ -16,6 +16,12 @@ export async function POST(request: Request) {
   if (isResponse(gate)) return gate;
   const vault = sandbox ? await getVault(gate.sql, DEMO_OWNER_ID) : undefined;
   await seedDemo(gate.sql);
-  if (vault?.paymentTokenId && !vault.paymentTokenId.startsWith("VAULT-MOCK")) await saveVault(gate.sql, vault);
-  return asResponse({ status: 200, body: { ok: true, explanation: sandbox ? "Maya's ledger was restored. The linked PayPal wallet stays linked." : "Maya's household was restored. Allowances, the vault, and the sample receipt are back." } });
+  const keptWallet = Boolean(vault?.paymentTokenId && !vault.paymentTokenId.startsWith("VAULT-MOCK"));
+  if (vault && keptWallet) await saveVault(gate.sql, vault);
+  const explanation = !sandbox
+    ? "Maya's household was restored. Allowances, the vault, and the sample receipt are back."
+    : keptWallet
+      ? "Maya's ledger was restored. The linked PayPal wallet stays linked."
+      : "Maya's ledger was restored. Click Link PayPal to connect a sandbox wallet.";
+  return asResponse({ status: 200, body: { ok: true, explanation } });
 }

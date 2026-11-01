@@ -151,21 +151,15 @@ export function createLivePayPal(options: {
             {
               custom_id: input.customId,
               description: input.description,
-              payee: input.payeeEmail ? { email_address: input.payeeEmail } : undefined,
+              // A vaulted wallet charge pays the account that owns the REST app.
+              payee: input.payeeEmail && !input.vaultId ? { email_address: input.payeeEmail } : undefined,
               amount: {
                 currency_code: input.currency,
                 value: centsToDecimal(input.amountCents),
               },
             },
           ],
-          payment_source: input.vaultId
-            ? {
-                paypal: {
-                  vault_id: input.vaultId,
-                  stored_credential: input.storedCredential,
-                },
-              }
-            : undefined,
+          payment_source: input.vaultId ? { paypal: { vault_id: input.vaultId } } : undefined,
         }),
       });
       if (sql) {
