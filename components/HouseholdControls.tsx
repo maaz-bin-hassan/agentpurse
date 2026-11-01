@@ -14,6 +14,10 @@ export function HouseholdControls({ ownerId, panic, vaultStatus }: { ownerId: st
     setMessage(null);
     try {
       const payload = await postJson(url, body);
+      if (typeof payload.approveUrl === "string" && payload.approveUrl) {
+        window.location.assign(payload.approveUrl);
+        return;
+      }
       setMessage(typeof payload.explanation === "string" ? payload.explanation : "Done.");
       router.refresh();
     } catch (error) {

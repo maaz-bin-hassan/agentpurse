@@ -6,7 +6,7 @@ Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/). Def
 
 ## For judges
 
-Live demo: `https://YOUR-APP.vercel.app` (replace after `npm run deploy`). Until that URL exists, the commands below are the demo. No PayPal account, model key, or Supabase project is required.
+Live demo: https://agentpurse.vercel.app. Its badge shows **PayPal sandbox** or **Mock PayPal**. The commands below run the same demo locally. No PayPal account, model key, or Supabase project is required.
 
 ### 60-second quickstart
 
@@ -35,14 +35,14 @@ Sandbox client id and secret are not in this repo. MaAz keeps those for judges t
 What you are judging:
 
 - **PayPal** is Payment Method Tokens v3 (save a wallet with no purchase) and Orders v2 merchant-initiated charges (`vault_id`, `stored_credential`, `payee`, `custom_id` = intent id), plus capture, refund, and signed webhooks. `src/paypal/live.ts` calls the sandbox only when `PAYPAL_MODE=live`.
-- **AI** parses sentences, compiles plain-English rules (Zod), and blocks prompt injection. `AI_MODE=mock` does this locally. Groq or Gemini are optional and cannot override the clerk or the guard.
-- **MCP** exposes `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, and `list_receipts` over stdio and streamable HTTP. See `docs/PLUGIN.md` for Grok Bot, Claude Desktop, and Cursor.
+- **AI** parses sentences, and the guard blocks prompt injection. `AI_MODE=mock` does this locally. Groq or Gemini are optional and cannot override the clerk or the guard.
+- **MCP** exposes `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, and `list_receipts` over stdio and streamable HTTP. Agent API keys are the working sign-in. See `docs/PLUGIN.md`.
 - **The clerk** is ordinary TypeScript. Allowances, caps, the denylist, pause, and panic are not model opinions.
 
 Three-minute path (`docs/DEMO.md`):
 
 1. Open `/demo/injection`. Let Grocer follow the hidden gift-card line. It is blocked. The oat-milk task is not.
-2. Hold a $75 Metro Rail seat and click **Approve at PayPal**.
+2. Hold a $75 Metro Rail seat and click **Approve and pay**.
 3. Pause an agent, hit **Panic freeze**, then **Revoke PayPal** (the vault token is deleted).
 4. Call the MCP server with `Authorization: Bearer agpk_grocer_demo_maya` and ask it to buy oat milk.
 
@@ -74,6 +74,7 @@ Copy `.env.example` only if you want to change defaults. Unset means mock.
 | `AGENTPURSE_DB` | `data/agentpurse.db` | SQLite file |
 | `AGENTPURSE_AUTO_SEED` | on | Set to `0` to skip the demo seed |
 | `AGENTPURSE_API_KEY` | unset | Agent key for `npm run mcp` |
+| `AGENTPURSE_SANDBOX_DEMO` | unset | `1` opens the public sandbox demo. Needs `DEMO_SESSION_SECRET` and the sandbox host |
 
 ## License
 

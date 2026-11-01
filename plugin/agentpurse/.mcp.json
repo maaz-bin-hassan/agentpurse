@@ -2,7 +2,7 @@
   "mcpServers": {
     "agentpurse": {
       "type": "http",
-      "url": "http://localhost:3000/mcp"
+      "url": "https://agentpurse.vercel.app/mcp"
     }
   }
 }

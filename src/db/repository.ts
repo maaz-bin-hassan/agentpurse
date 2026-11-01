@@ -691,6 +691,11 @@ export async function getQuote(sql: Sql, id: string): Promise<SqlRow | undefined
   return sql.get("SELECT * FROM quotes WHERE id = ?", [id]);
 }
 
+/** Returns false when the quote was already spent. One statement, so two calls cannot both win. */
+export async function claimQuote(sql: Sql, id: string, at: string): Promise<boolean> {
+  return Boolean(await sql.get("UPDATE quotes SET used_at = ? WHERE id = ? AND used_at IS NULL RETURNING id", [at, id]));
+}
+
 export async function insertNotification(
   sql: Sql,
   note: { id: string; ownerId: string; intentId: string | null; title: string; body: string; delivered: boolean; createdAt: string },

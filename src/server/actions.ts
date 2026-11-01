@@ -268,7 +268,12 @@ export async function requestPurchase(
       if (!intent) return fail(500, "The payment was captured but not recorded.");
       return { status: 200, body: { ok: true, explanation: intent.explanation ?? clerk.explanation, intent, spend: intent, order } };
     } catch (error) {
-      if (error instanceof PayPalError) return fail(error.status, error.message);
+      if (error instanceof PayPalError) {
+        const failedAt = stamp(now);
+        await updateIntent(sql, intentId, { status: "failed", explanation: "PayPal could not complete this payment. The agent should not try again until the owner checks it.", updatedAt: failedAt });
+        await insertAudit(sql, { id: newId("audit"), ownerId: owner.id, actor: "paypal", action: "spend_failed", detail: error.message, createdAt: failedAt });
+        return fail(error.status, error.message);
+      }
       throw error;
     }
   }
@@ -580,6 +585,30 @@ export async function revokeVault(
     createdAt: new Date().toISOString(),
   });
   return { status: 200, body: { ok: true } };
+}
+
+/** Runs when PayPal returns the payer. The setup token comes from our own record, never from the URL. */
+export async function finishVaultLink(
+  sql: Sql,
+  ownerId: string,
+  options?: ActionOptions,
+): Promise<ActionResult<{ ok: true; explanation: string } | { ok: false; error: string }>> {
+  const vault = await getVault(sql, ownerId);
+  if (!vault?.setupTokenId || vault.status !== "payer_action_required") return fail(409, "No PayPal link is waiting.");
+  try {
+    const paypal = clientFor(sql, options);
+    const approved = await paypal.approveSetupToken(vault.setupTokenId);
+    const token = await paypal.createPaymentToken(approved.id);
+    const at = stamp(options?.now ?? new Date());
+    const { saveVault } = await import("@/src/db/repository");
+    await saveVault(sql, { ...vault, paymentTokenId: token.id, paypalCustomerId: token.customerId, payerEmail: token.payerEmail ?? null, status: "vaulted", updatedAt: at });
+    const explanation = "PayPal linked without a purchase.";
+    await insertAudit(sql, { id: newId("audit"), ownerId, actor: "paypal", action: "vault_linked", detail: explanation, createdAt: at });
+    return { status: 200, body: { ok: true, explanation } };
+  } catch (error) {
+    if (error instanceof PayPalError) return fail(error.status, error.message);
+    throw error;
+  }
 }
 
 async function saveVaultRevoked(sql: Sql, vault: Vault): Promise<void> {

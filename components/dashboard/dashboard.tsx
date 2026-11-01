@@ -55,12 +55,16 @@ type Receipt = {
   amountCents: number;
   currency: string;
   detail: string;
+  paypalOrderId: string | null;
+  captureId: string | null;
   createdAt: string;
 };
 
 export type DashboardData = {
   owner: { id: string; name: string; email: string; panicFrozen: boolean };
-  vault: { status: string; paymentTokenId: string | null } | null;
+  vault: { status: string; paymentTokenId: string | null; payerEmail: string | null } | null;
+  paypalMode: "mock" | "live";
+  linkNotice: string | null;
   agents: Agent[];
   holds: Intent[];
   captured: Intent[];
@@ -95,6 +99,7 @@ const STAMPS: Record<string, { tone: string; label: string }> = {
   denied: { tone: "deny", label: "Denied" },
   blocked: { tone: "deny", label: "Blocked" },
   needs_clarification: { tone: "quiet", label: "Unclear" },
+  failed: { tone: "deny", label: "Failed" },
 };
 
 export function Dashboard({ data }: { data: DashboardData }) {
@@ -103,7 +108,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
   const [receiptKind, setReceiptKind] = useState<"all" | "capture" | "refund">("all");
   const [receiptAgent, setReceiptAgent] = useState("all");
   const [paid, setPaid] = useState(false);
-  const { owner, vault, agents, holds, captured, intents, receipts, notifications, latestDetail } = data;
+  const { owner, vault, paypalMode, linkNotice, agents, holds, captured, intents, receipts, notifications, latestDetail } = data;
 
   const byCategory = useMemo(() => {
     const totals = new Map<string, number>();
@@ -179,10 +184,15 @@ export function Dashboard({ data }: { data: DashboardData }) {
               <p className="eyebrow">{owner.email}</p>
               <h1 className="mt-1 text-4xl">{owner.name}&apos;s household</h1>
             </div>
-            <p className="max-w-sm text-sm text-muted sm:text-right">
-              {vault?.status === "vaulted" ? "Linked" : "Not linked"} to PayPal · <span className="money text-xs">{vault?.paymentTokenId ?? "no payment token"}</span> · AgentPurse does not hold a balance.
-            </p>
+            <div className="max-w-sm text-sm text-muted sm:text-right">
+              <p className={`stamp ${paypalMode === "live" ? "allow" : "quiet"}`}>{paypalMode === "live" ? "PayPal sandbox" : "Mock PayPal"}</p>
+              <p className="mt-2">
+                {vault?.status === "vaulted" ? "Linked" : "Not linked"} to PayPal{vault?.status === "vaulted" && vault.payerEmail ? ` as ${vault.payerEmail}` : ""} · <span className="money text-xs">{vault?.paymentTokenId ?? "no payment token"}</span> · AgentPurse does not hold a balance.
+              </p>
+            </div>
           </header>
+
+          {linkNotice ? <p className="mt-4 rounded-lg border border-line bg-card px-4 py-3 text-sm" role="status">{linkNotice}</p> : null}
 
           {owner.panicFrozen ? (
             <p className="mt-4 rounded-lg border-2 border-deny px-4 py-3 text-sm font-medium text-deny">Panic freeze is on. Every payment is stopped until {owner.name} clears it.</p>
@@ -359,6 +369,11 @@ export function Dashboard({ data }: { data: DashboardData }) {
                             <td className="py-2.5 pr-4">
                               <div className="font-medium">{receipt.merchantName}</div>
                               <div className="text-muted">{receipt.detail}</div>
+                              {receipt.paypalOrderId ? (
+                                <div className="money mt-0.5 text-xs break-all text-muted">
+                                  PayPal order {receipt.paypalOrderId}{receipt.captureId ? ` · capture ${receipt.captureId}` : ""}
+                                </div>
+                              ) : null}
                             </td>
                             <td className="py-2.5 pr-4 capitalize">{receipt.kind}</td>
                             <td className="money py-2.5 text-right whitespace-nowrap">{receipt.kind === "refund" ? "+" : "−"}{formatMoney(receipt.amountCents, receipt.currency)}</td>

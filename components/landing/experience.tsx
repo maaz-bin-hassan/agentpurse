@@ -37,13 +37,13 @@ const PLANS = [
 const STORIES = [
   { who: "A parent", text: "The grocery agent can buy milk. It cannot buy gift cards a webpage invented." },
   { who: "A founder", text: "The software agent pays CloudApps under $40. A $900 flight never leaves the clerk." },
-  { who: "A traveler", text: "Above $50, my phone asks for a passkey. Then PayPal pays the rail company." },
+  { who: "A traveler", text: "Above $50, the cheque waits for my signature. Then PayPal pays the rail company." },
 ];
 
 const FEATURES = [
   ["Allowances", "Each agent gets its own budget. It is a number on a ledger, not money sitting in an account."],
   ["Intent guard", "Every purchase is compared with the original task. Text hidden in a page cannot change the task."],
-  ["Your signature", "Over your line, the cheque waits for a passkey or a PayPal approval."],
+  ["Your signature", "Over your line, the cheque waits for you to sign it on the dashboard."],
   ["Kill switch", "Pause one agent, delete the vault token, or freeze the whole household."],
   ["Receipts", "Every capture and refund stays on the request that caused it, ready to filter."],
   ["MCP", "Claude, Cursor, and Grok Bot all ask through the same purchase tools."],

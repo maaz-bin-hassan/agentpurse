@@ -12,12 +12,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (isResponse(gate)) return gate;
   const { sql } = gate;
   const paypal = createPayPalClient(sql);
-  const origin = new URL(request.url).origin;
+  const origin = process.env.PUBLIC_BASE_URL?.replace(/\/$/, "") || new URL(request.url).origin;
+  const back = `${origin}/api/paypal/vault/return?owner=${encodeURIComponent(id)}`;
   const setup = await paypal.createSetupToken({
     ownerId: id,
     description: "AgentPurse",
-    returnUrl: `${origin}/purses/${id}`,
-    cancelUrl: `${origin}/purses/${id}`,
+    returnUrl: back,
+    cancelUrl: `${back}&cancelled=1`,
   });
   const now = new Date().toISOString();
   if (paypal.mode === "live") {

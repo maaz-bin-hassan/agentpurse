@@ -62,6 +62,43 @@ SQLite on Vercel does not persist. Do not deploy the mock demo without `DATABASE
 
 For a real sandbox, also set `PAYPAL_MODE=live`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MERCHANT_EMAIL` (the sandbox business account that receives charges), and `PAYPAL_WEBHOOK_ID`. Point a PayPal sandbox webhook at `https://<your-app>.vercel.app/api/paypal/webhooks` for `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`, `CHECKOUT.ORDER.APPROVED`, and `VAULT.PAYMENT-TOKEN.DELETED`.
 
+## PayPal sandbox demo
+
+Mock stays the default. This turns the public site into a real sandbox demo. Keep every value in the host's env, never in the repo or in chat.
+
+1. At developer.paypal.com, under Sandbox accounts, make a US **business** account and a US **personal** account.
+2. Under Apps & Credentials, in Sandbox, create a REST app **under that business account**. Refunds depend on the payee being the app's own account.
+3. In the app's features, turn on **Vault** for PayPal wallets.
+4. Add a webhook to the app for `https://agentpurse.vercel.app/api/paypal/webhooks` with `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`, and `VAULT.PAYMENT-TOKEN.DELETED`.
+5. Set these in Vercel, then redeploy:
+
+```
+PAYPAL_MODE=live
+PAYPAL_API_BASE=https://api-m.sandbox.paypal.com
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_WEBHOOK_ID=...
+PAYPAL_MERCHANT_EMAIL=<the sandbox business account email>
+AGENTPURSE_SANDBOX_DEMO=1
+DEMO_SESSION_SECRET=<a long random string>
+PUBLIC_BASE_URL=https://agentpurse.vercel.app
+```
+
+`GET /api/health` must show `"sandboxDemo": true`. The app refuses this mode on any host other than the sandbox.
+
+Then run this once on the public URL:
+
+1. Open Controls and click **Reset demo**. This drops the old mock wallet.
+2. Click **Link PayPal** and log in as the sandbox personal account.
+3. Ask Grocer for oat milk. It should pay on its own.
+4. Hold a $75 Metro Rail seat, then click **Approve and pay**.
+5. Check the payment in the sandbox business account.
+6. Refund it from Approvals.
+
+Anyone with the link can use this demo, because it is sandbox money. A visitor can click **Revoke PayPal**, and then you link the wallet again. Check it before recording or submitting.
+
+Real live mode (`PAYPAL_MODE=live` without the sandbox demo) has no dashboard sign-in yet, so do not use it.
+
 ## Render (free tier)
 
 `render.yaml` starts `npm run start` after `npm run build`. Set the same environment variables in the Render dashboard. The free web service sleeps when idle; the first request after sleep is slow, and PayPal webhook retries cover that.

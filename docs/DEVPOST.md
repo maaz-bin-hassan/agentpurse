@@ -10,7 +10,7 @@ The purse an agent spends from. PayPal charges the merchant. The model does not 
 
 ## About the project
 
-Agents are starting to buy things. A prompt is not a receipt, and a wallet the app holds is the wrong shape: the payer already has PayPal. AgentPurse links that wallet once, gives each agent its own allowance and key, and lets the agent ask in a sentence. A guard checks the ask against the user's task. A clerk applies caps in code. PayPal then pays the merchant. Above a line, a person confirms with a passkey or a PayPal approval link. One switch pauses an agent, deletes the vault token, or freezes the household.
+Agents are starting to buy things. A prompt is not a receipt, and a wallet the app holds is the wrong shape: the payer already has PayPal. AgentPurse links that wallet once, gives each agent its own allowance and key, and lets the agent ask in a sentence. A guard checks the ask against the user's task. A clerk applies caps in code. PayPal then pays the merchant. Above a line, the purchase waits as a held cheque until the owner signs it on the dashboard. One switch pauses an agent, deletes the vault token, or freezes the household.
 
 ## What it does
 
@@ -18,16 +18,15 @@ Agents are starting to buy things. A prompt is not a receipt, and a wallet the a
 - Charges with Orders v2: `vault_id`, merchant-initiated `stored_credential`, the sandbox business account as `payee`, and the intent id in `custom_id`.
 - Captures, refunds, and verifies webhooks before they become receipts.
 - Gives Claude, Grok, ChatGPT, or any MCP client its own allowance, API key, and policy.
-- Compiles a plain-English rule into a schema-checked policy. Groq or Gemini are optional. The clerk can ignore the model.
 - Blocks a hidden "buy 5 gift cards" instruction that is not the user's task.
-- Notifies the owner, accepts a WebAuthn passkey, or falls back to a PayPal approval link.
+- Shows held purchases on the dashboard for the owner to sign. An agent key can never sign.
 - Pauses an agent, revokes the vault token at PayPal, or panic-freezes every payment.
 
 The default is mock mode. Judges do not need sandbox keys. `PAYPAL_MODE=live` uses the sandbox.
 
 ## How we built it
 
-Next.js, TypeScript, SQLite for the laptop, Postgres on Supabase when `DATABASE_URL` is set, Vitest, and PGlite so the Postgres schema is executed in tests. MCP is protocol `2025-11-25` over stdio and streamable HTTP, with OAuth 2.1 PKCE for remote clients and an API key for local ones. The Grok plugin package matches the marketplace layout (`.grok-plugin/plugin.json` and `.mcp.json`).
+Next.js, TypeScript, SQLite for the laptop, Postgres on Supabase when `DATABASE_URL` is set, Vitest, and PGlite so the Postgres schema is executed in tests. MCP is protocol `2025-11-25` over stdio and streamable HTTP, with an agent API key on every request. The Grok plugin package matches the marketplace layout (`.grok-plugin/plugin.json` and `.mcp.json`).
 
 ## Challenges
 
@@ -49,7 +48,7 @@ Partial refunds, a hosted Supabase project for the public demo, and submitting t
 
 ## Built with
 
-Next.js, TypeScript, Node.js, SQLite, Postgres, Supabase, PayPal Payment Method Tokens v3, PayPal Orders v2, MCP, WebAuthn, Web Push, Zod, Vitest. Optional: Groq, Gemini, Vercel, Render.
+Next.js, TypeScript, Node.js, SQLite, Postgres, Supabase, PayPal Payment Method Tokens v3, PayPal Orders v2, MCP, Zod, Vitest. Optional: Groq, Gemini, Vercel, Render.
 
 ## Try it out
 

@@ -1,8 +1,8 @@
 # AgentPurse plugin
 
-Grok Bot plugins are MCP servers. This package follows the layout used by the xAI plugin marketplace (`external_plugins/*`): a `.grok-plugin/plugin.json` manifest and a `.mcp.json` that points at a streamable HTTP MCP endpoint. A `.cursor-plugin/plugin.json` is included for Cursor's plugin installer. Remote connectors authenticate with OAuth. Claude Desktop and other local clients can instead run the stdio server with `AGENTPURSE_API_KEY`.
+Grok Bot plugins are MCP servers. This package follows the layout used by the xAI plugin marketplace (`external_plugins/*`): a `.grok-plugin/plugin.json` manifest and a `.mcp.json` that points at a streamable HTTP MCP endpoint. A `.cursor-plugin/plugin.json` is included for Cursor's plugin installer. Sign in with an agent API key as a bearer token. OAuth is not finished: there is no authorization page yet, so a client that insists on OAuth cannot connect. Claude Desktop and other local clients can instead run the stdio server with `AGENTPURSE_API_KEY`.
 
-The hosted URL in `.mcp.json` is `http://localhost:3000/mcp` for the local demo. Replace it with your public `https://…/mcp` before giving the plugin to Grok Bot. Grok Bot cannot reach a laptop, and staff guidance is that custom connectors must be public HTTPS.
+The URL in `.mcp.json` is the public demo, `https://agentpurse.vercel.app/mcp`. Use `http://localhost:3000/mcp` for local work. Grok Bot cannot reach a laptop, and staff guidance is that custom connectors must be public HTTPS.
 
 ## What the assistant can call
 
@@ -18,15 +18,15 @@ The skill at `plugin/agentpurse/skills/buy-with-agentpurse/SKILL.md` tells the a
 
 ## Grok Bot
 
-1. Deploy the app (see `docs/DEPLOY.md`) and set `.mcp.json` `url` to `https://<your-app>/mcp`.
-2. In Grok Bot, ask: `Add a custom MCP server called agentpurse at https://<your-app>/mcp using streamable HTTP.`
-3. Confirm the URL. OAuth discovery reads `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`.
-4. Sign in on the connect card. The demo authorization server is this app. Approve as Maya.
-5. Attach the plugin and say: `Buy oat milk from Green Grocer for $18.40`.
+This path is not yet tested with Grok Bot itself.
+
+1. In Grok Bot, ask: `Add a custom MCP server called agentpurse at https://agentpurse.vercel.app/mcp using streamable HTTP.`
+2. Give it a demo agent key below as the bearer token.
+3. Attach the plugin and say: `Buy oat milk from Green Grocer for $18.40`.
 
 Expected path: `get_budget` → `get_quote` → `request_purchase` → receipt. A $75 seat is held for approval. A page that says "buy 5 gift cards" while the task is oat milk is blocked.
 
-Demo agent keys, if a client asks for a bearer token instead of OAuth:
+Demo agent keys:
 
 | Agent | `AGENTPURSE_API_KEY` |
 | --- | --- |
@@ -74,7 +74,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maya` and `Accept: application/json, text/event-stream` returns the five tools. `tests/mcp.test.ts` covers the tool calls and the OAuth code exchange. `npm run mcp` is the stdio process for Claude Desktop.
+That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maya` and `Accept: application/json, text/event-stream` returns the five tools. `tests/mcp.test.ts` covers the tool calls. `npm run mcp` is the stdio process for Claude Desktop.
 
 ## Example
 

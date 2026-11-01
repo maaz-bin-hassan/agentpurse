@@ -1,3 +1,4 @@
+import { paypalMode } from "@/src/config";
 import { DEMO_KEYS } from "@/src/domain/demo-keys";
 import { DEMO_PAYEE } from "@/src/domain/payee";
 import { evaluateSpend } from "@/src/policy/engine";
@@ -30,6 +31,8 @@ function daysBefore(now: Date, days: number, hours = 0): string {
 export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boolean }): Promise<{ ownerId: string }> {
   const now = options?.now ?? new Date();
   const preserve = options?.ifMissing === true;
+  // A mock token can never pay in live mode, so a live household starts unlinked.
+  const mock = paypalMode() === "mock";
   const createdAt = daysBefore(now, 3, 12);
   const softwareAt = daysBefore(now, 1, 16);
   const flightAt = daysBefore(now, 1, 18);
@@ -59,17 +62,18 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
           `INSERT INTO vaults (
             id, owner_id, setup_token_id, payment_token_id, paypal_customer_id, payer_email, status, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, 'vaulted', ?, ?)`,
-          ["vault_maya", DEMO_OWNER_ID, "SETUP-MOCK-MAYA", DEMO_VAULT_ID, "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
+          ["vault_maya", DEMO_OWNER_ID, "SETUP-MOCK-MAYA", mock ? DEMO_VAULT_ID : null, "CUSTOMER-MOCK-MAYA", "maya@example.com", createdAt, createdAt],
         );
+        if (!mock) await tx.exec("UPDATE vaults SET status = 'revoked' WHERE id = 'vault_maya'");
       } else {
         await saveVault(tx, {
           id: "vault_maya",
           ownerId: DEMO_OWNER_ID,
           setupTokenId: "SETUP-MOCK-MAYA",
-          paymentTokenId: DEMO_VAULT_ID,
+          paymentTokenId: mock ? DEMO_VAULT_ID : null,
           paypalCustomerId: "CUSTOMER-MOCK-MAYA",
           payerEmail: "maya@example.com",
-          status: "vaulted",
+          status: mock ? "vaulted" : "revoked",
           createdAt,
           updatedAt: createdAt,
         });

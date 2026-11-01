@@ -59,12 +59,13 @@ Keep this list honest when a phase lands.
 - [x] Phase 6 — dashboard, `docs/DEMO.md`, `docs/DEVPOST.md`
 - [x] Phase 7 — per-agent allowances, SQLite and Postgres
 - [x] Phase 8 — PayPal Vault, merchant charges, webhooks
-- [x] Phase 9 — policy compiler and intent guard
-- [x] Phase 10 — MCP stdio, streamable HTTP, OAuth
-- [x] Phase 11 — passkey approval, Web Push, PayPal approval link
+- [x] Phase 9 — intent guard. The policy compiler is library code, not connected to the app
+- [x] Phase 10 — MCP stdio, streamable HTTP, agent API keys. OAuth has no authorization page yet
+- [x] Phase 11 — owner signs held cheques on the dashboard. Passkey and Web Push are server code only, with no screens yet
 - [x] Phase 12 — pause, vault revoke, panic freeze
 - [x] Phase 13 — dashboard and injection demo
 - [x] Phase 14 — Grok plugin, deploy docs, submission copy
+- [ ] Phase 15 — real PayPal sandbox run: code done, waiting on sandbox keys
 
 ## Changing a rule
 

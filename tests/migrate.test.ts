@@ -19,9 +19,9 @@ describe("ordered migrations and idempotent seed", () => {
     const sql = await openPglite();
     const first = await applyMigrations(sql);
     const second = await applyMigrations(sql);
-    expect(first.applied).toEqual(["0001_agentpurse", "0002_agentic_commerce"]);
+    expect(first.applied).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes"]);
     expect(second.applied).toEqual([]);
-    expect(second.skipped).toEqual(["0001_agentpurse", "0002_agentic_commerce"]);
+    expect(second.skipped).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes"]);
 
     await seedDemo(sql, { now: NOW, ifMissing: true });
     await sql.exec(

@@ -31,7 +31,7 @@ export function webauthnConfig(env: NodeJS.ProcessEnv = process.env) {
 export function approvalPush(intent: Pick<IntentRecord, "id" | "merchantName" | "amountCents" | "currency">) {
   return {
     title: `Approve ${intent.merchantName ?? "a payment"}?`,
-    body: `${formatMoney(intent.amountCents ?? 0, intent.currency ?? "USD")} is waiting. Confirm with your passkey, or approve at PayPal.`,
+    body: `${formatMoney(intent.amountCents ?? 0, intent.currency ?? "USD")} is waiting for your signature.`,
     intentId: intent.id,
     url: "/purses/purse_maya",
   };

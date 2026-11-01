@@ -18,6 +18,7 @@ export function createPayPalClient(sql: Sql, env: AppEnv = process.env): PayPalC
       clientId,
       clientSecret,
       baseUrl: env.PAYPAL_API_BASE,
+      sql,
     });
   }
   return createMockPayPal(sql);

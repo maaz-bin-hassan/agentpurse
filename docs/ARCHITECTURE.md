@@ -10,7 +10,7 @@ flowchart LR
   Guard -->|block| Ledger[Intent and audit]
   Guard -->|pass| Clerk[Purse clerk]
   Clerk -->|deny| Ledger
-  Clerk -->|hold| Human[Passkey or PayPal approval]
+  Clerk -->|hold| Human[Owner signs on the dashboard]
   Human --> Clerk
   Clerk -->|allow| Vault[PayPal vault charge]
   Vault --> Webhook[Signed webhook]
@@ -70,7 +70,7 @@ Approval re-runs the deny rules before capture.
 
 `src/mcp` implements tools `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, and `list_receipts`. Stdio is `npm run mcp` and reads `AGENTPURSE_API_KEY`. `POST /mcp` is streamable HTTP (protocol `2025-11-25`): JSON-RPC in, JSON or an accepted notification response out, bearer API key or OAuth access token, Origin rejected when it is present and not allowed.
 
-OAuth is authorization code with PKCE. Metadata is at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`.
+Agent API keys are the working sign-in. Client registration, token exchange, and OAuth metadata exist, but there is no authorization page yet, so a remote OAuth client cannot finish signing in.
 
 ## Databases
 

@@ -2,6 +2,7 @@ import { assessIntent } from "@/src/ai/guard";
 import { merchantPayee } from "@/src/domain/payee";
 import { formatMoney } from "@/src/domain/money";
 import {
+  claimQuote,
   findMerchantByName,
   getAgent,
   getOwner,
@@ -145,15 +146,25 @@ export async function callTool(sql: Sql, actor: McpActor, name: string, args: Re
     return textResult({ quoteId: id, merchant: merchant.name, amountCents, guard });
   }
   if (name === "request_purchase") {
-    const agentId = typeof args.agentId === "string" ? args.agentId : actor.agentId;
+    // An agent key speaks only for its own agent. Only a household token may choose one.
+    let agentId = actor.agentId ?? (typeof args.agentId === "string" ? args.agentId : null);
+    if (agentId && (await getAgent(sql, agentId))?.ownerId !== actor.ownerId) {
+      return { isError: true, content: [{ type: "text", text: "Unknown agent." }] };
+    }
     let text = typeof args.text === "string" ? args.text : "";
     let originalTask = typeof args.originalTask === "string" ? args.originalTask : text;
     let pageExcerpt = typeof args.pageExcerpt === "string" ? args.pageExcerpt : undefined;
     if (typeof args.quoteId === "string") {
       const quote = await getQuote(sql, args.quoteId);
-      if (!quote) return { isError: true, content: [{ type: "text", text: "Unknown quote." }] };
+      const quoteAgentId = quote ? String(quote.agent_id) : "";
+      if (!quote || (await getAgent(sql, quoteAgentId))?.ownerId !== actor.ownerId) {
+        return { isError: true, content: [{ type: "text", text: "Unknown quote." }] };
+      }
+      if (actor.agentId && actor.agentId !== quoteAgentId) return { isError: true, content: [{ type: "text", text: "This quote belongs to another agent." }] };
       if (String(quote.expires_at) < new Date().toISOString()) return { isError: true, content: [{ type: "text", text: "Quote expired." }] };
-      text = `${quote.description} from ${quote.merchant_name} for $${(Number(quote.amount_cents) / 100).toFixed(2)}`;
+      if (!(await claimQuote(sql, args.quoteId, new Date().toISOString()))) return { isError: true, content: [{ type: "text", text: "This quote was already used. Ask for a new quote." }] };
+      agentId = quoteAgentId;
+      text =`${quote.description} from ${quote.merchant_name} for $${(Number(quote.amount_cents) / 100).toFixed(2)}`;
       originalTask = String(quote.original_task);
       pageExcerpt = quote.page_excerpt ? String(quote.page_excerpt) : pageExcerpt;
     }
@@ -242,6 +253,5 @@ export function allowedOrigin(origin: string | null, env: NodeJS.ProcessEnv = pr
   return allowed.has(origin);
 }
 
-void getAgent;
 void getOwner;
 void getVault;

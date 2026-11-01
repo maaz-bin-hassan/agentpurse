@@ -31,15 +31,13 @@ export function HoldActions({
   const [leaving, setLeaving] = useState<"left" | "right" | null>(null);
   const noteId = `note-${spendId}`;
 
-  async function decide(path: "paypal" | "deny") {
+  async function decide(path: "approve" | "deny") {
     setPending(true);
     setMessage(null);
     try {
-      if (path === "paypal") {
-        const started = await postJson(`/api/intents/${spendId}/paypal-approval`, { note });
-        const orderId = String(started.orderId ?? "");
-        const finished = await postJson(`/api/paypal/orders/${orderId}/finish`);
-        setMessage(typeof finished.explanation === "string" ? finished.explanation : "Paid after PayPal approval.");
+      if (path === "approve") {
+        const signed = await postJson(`/api/spends/${spendId}/sign`, { note });
+        setMessage(typeof signed.explanation === "string" ? signed.explanation : "Paid.");
         setLeaving("right");
         onApproved?.();
       } else {
@@ -62,7 +60,7 @@ export function HoldActions({
       dragElastic={0.18}
       onDragEnd={(_, info) => {
         if (pending) return;
-        if (info.offset.x > 120) void decide("paypal");
+        if (info.offset.x > 120) void decide("approve");
         if (info.offset.x < -120) void decide("deny");
       }}
       animate={leaving ? { x: leaving === "right" ? 280 : -280, opacity: 0 } : { x: 0, opacity: 1 }}
@@ -73,8 +71,8 @@ export function HoldActions({
           <label htmlFor={noteId}>Note for the ledger</label>
           <input id={noteId} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional" />
           <div className="actions items-center">
-            <button className="btn" type="button" disabled={pending} onClick={() => void decide("paypal")}>
-              Approve at PayPal
+            <button className="btn" type="button" disabled={pending} onClick={() => void decide("approve")}>
+              Approve and pay
             </button>
             <button className="btn secondary" type="button" disabled={pending} onClick={() => void decide("deny")}>
               Deny

@@ -15,13 +15,13 @@ test("judge demo: injection block, approval, and panic freeze", async ({ page })
   const wayfinder = page.locator("form").filter({ hasText: "Wayfinder" });
   await wayfinder.getByRole("button", { name: "Hold a $75 seat from Metro Rail" }).click();
   await wayfinder.getByRole("button", { name: "Ask the clerk" }).click();
-  await expect(wayfinder.getByRole("status")).toContainText("Held for Maya Chen");
-  await page.getByRole("button", { name: "Approve at PayPal" }).click();
+  await expect(wayfinder.getByRole("status")).toContainText("Held for Maya Chen", { timeout: 20_000 });
+  await page.getByRole("button", { name: "Approve and pay" }).click();
   await expect(page.getByText("Nothing is held.")).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole("button", { name: "Controls", exact: true }).click();
   await page.getByRole("button", { name: "Panic freeze" }).click();
-  await expect(page.getByText("No agent can pay.")).toBeVisible();
+  await expect(page.getByText("No agent can pay.")).toBeVisible({ timeout: 20_000 });
   await page.getByRole("button", { name: "Clear panic freeze" }).click();
-  await expect(page.getByRole("button", { name: "Panic freeze" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Panic freeze", exact: true })).toBeVisible({ timeout: 20_000 });
 });

@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { getPaypalOrder, upsertPaypalOrder } from "@/src/db/repository";
+import type { Sql } from "@/src/db/sql";
 import { centsToDecimal } from "@/src/domain/money";
 import {
   PayPalError,
@@ -21,10 +23,16 @@ export function createLivePayPal(options: {
   clientSecret: string;
   baseUrl?: string;
   fetchImpl?: FetchLike;
+  sql?: Sql;
 }): PayPalClient {
   const base = (options.baseUrl ?? "https://api-m.sandbox.paypal.com").replace(/\/$/, "");
   const fetchImpl = options.fetchImpl ?? fetch;
+  const sql = options.sql;
   let tokenCache: { value: string; exp: number } | null = null;
+
+  function captureIdOf(order: PaypalOrder): string | null {
+    return order.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? null;
+  }
 
   async function accessToken(): Promise<string> {
     if (tokenCache && tokenCache.exp > Date.now() + 5000) return tokenCache.value;
@@ -134,8 +142,9 @@ export function createLivePayPal(options: {
       if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
         throw new PayPalError("Amount must be a positive number of cents.", 422);
       }
-      return paypal<PaypalOrder>("/v2/checkout/orders", {
+      const order = await paypal<PaypalOrder>("/v2/checkout/orders", {
         method: "POST",
+        headers: { Prefer: "return=representation" },
         body: JSON.stringify({
           intent: "CAPTURE",
           purchase_units: [
@@ -159,6 +168,26 @@ export function createLivePayPal(options: {
             : undefined,
         }),
       });
+      if (sql) {
+        const at = new Date().toISOString();
+        await upsertPaypalOrder(sql, {
+          id: order.id,
+          ownerId: input.ownerId ?? null,
+          intentId: input.intentId ?? input.spendRequestId ?? null,
+          kind: input.kind,
+          status: order.status,
+          currency: input.currency,
+          amountCents: input.amountCents,
+          captureId: captureIdOf(order),
+          vaultId: input.vaultId ?? null,
+          payeeEmail: input.payeeEmail ?? null,
+          customId: input.customId ?? null,
+          rawJson: JSON.stringify(order),
+          createdAt: at,
+          updatedAt: at,
+        });
+      }
+      return order;
     },
     async getOrder(orderId: string): Promise<PaypalOrder> {
       return paypal<PaypalOrder>(`/v2/checkout/orders/${encodeURIComponent(orderId)}`, { method: "GET" });
@@ -166,7 +195,7 @@ export function createLivePayPal(options: {
     async approveOrder(orderId: string): Promise<PaypalOrder> {
       const order = await this.getOrder(orderId);
       if (order.status === "APPROVED" || order.status === "COMPLETED") return order;
-      const link = order.links.find((item) => item.rel === "approve");
+      const link = order.links?.find((item) => item.rel === "approve");
       throw new PayPalError(
         link
           ? `Buyer approval happens at PayPal: ${link.href}`
@@ -174,10 +203,22 @@ export function createLivePayPal(options: {
       );
     },
     async captureOrder(orderId: string): Promise<PaypalOrder> {
-      return paypal<PaypalOrder>(`/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
+      const order = await paypal<PaypalOrder>(`/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
         method: "POST",
+        headers: { Prefer: "return=representation" },
         body: "{}",
       });
+      const record = sql ? await getPaypalOrder(sql, orderId) : undefined;
+      if (sql && record) {
+        await upsertPaypalOrder(sql, {
+          ...record,
+          status: order.status,
+          captureId: captureIdOf(order) ?? record.captureId,
+          rawJson: JSON.stringify(order),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      return order;
     },
     async verifyWebhookSignature(input) {
       const result = await paypal<{ verification_status?: string }>("/v1/notifications/verify-webhook-signature", {

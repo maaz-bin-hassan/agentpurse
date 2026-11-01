@@ -12,7 +12,7 @@ import {
 } from "@/src/db/repository";
 import type { Sql } from "@/src/db/sql";
 import { createPayPalClient } from "@/src/paypal";
-import type { WebhookVerifyInput } from "@/src/paypal/types";
+import type { PayPalClient, WebhookVerifyInput } from "@/src/paypal/types";
 
 interface CaptureResource {
   id?: string;
@@ -39,6 +39,7 @@ export async function handlePaypalWebhook(
     authAlgo: string;
     webhookId: string;
   },
+  options?: { paypal?: PayPalClient },
 ): Promise<{ status: number; body: { ok: boolean; error?: string; duplicate?: boolean } }> {
   let event: { id?: string; event_type?: string; resource?: CaptureResource & { id?: string } };
   try {
@@ -46,7 +47,7 @@ export async function handlePaypalWebhook(
   } catch {
     return { status: 400, body: { ok: false, error: "Webhook body is not JSON." } };
   }
-  const paypal = createPayPalClient(sql);
+  const paypal = options?.paypal ?? createPayPalClient(sql);
   const input: WebhookVerifyInput = {
     transmissionId: headers.transmissionId,
     transmissionTime: headers.transmissionTime,
