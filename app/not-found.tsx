@@ -5,9 +5,10 @@ export default function NotFound() {
   return (
     <main className="shell">
       <SiteHeader />
-      <h1>That page is not in the book.</h1>
-      <p>
-        <Link href="/">Back to the start</Link>
+      <span className="stamp large deny">Void</span>
+      <h1 className="mt-5 text-4xl">That page is not in the book.</h1>
+      <p className="mt-3">
+        <Link className="underline" href="/">Back to the start</Link>
       </p>
     </main>
   );

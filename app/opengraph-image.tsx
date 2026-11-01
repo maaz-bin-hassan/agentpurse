@@ -13,19 +13,16 @@ export default function OpenGraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#f4efe6",
-          color: "#1c1712",
+          background: "#0f3d2e",
+          color: "#f6f1e4",
           padding: "72px",
         }}
       >
-        <div style={{ fontSize: 28, letterSpacing: "0.16em", color: "#8a5a12" }}>AGENTIC COMMERCE</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ fontSize: 84, lineHeight: 0.95, letterSpacing: "-0.04em" }}>AgentPurse</div>
-          <div style={{ fontSize: 32, maxWidth: 820 }}>
-            Agents can ask to spend. They cannot be the ones who decide.
-          </div>
+        <div style={{ fontSize: 26, letterSpacing: "0.14em", color: "#b7cbbd" }}>AGENTPURSE</div>
+        <div style={{ fontSize: 88, lineHeight: 1, letterSpacing: "-0.03em", maxWidth: 960 }}>
+          Give your agents a checkbook, not your card.
         </div>
-        <div style={{ fontSize: 24 }}>PayPal charges the merchant. The purse does not hold the money.</div>
+        <div style={{ fontSize: 26, color: "#b7cbbd" }}>PayPal charges the merchant. The purse does not hold the money.</div>
       </div>
     ),
     size,

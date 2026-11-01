@@ -1,35 +1,43 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
-const sans = Geist({
+const display = Fraunces({
   subsets: ["latin"],
-  variable: "--font-geist",
+  variable: "--font-fraunces",
+  style: ["normal", "italic"],
+  axes: ["opsz", "SOFT"],
 });
 
-const mono = Geist_Mono({
+const sans = Instrument_Sans({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-instrument",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-plex",
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
   title: "AgentPurse",
-  description: "A checkbook AI agents spend from. PayPal charges the merchant. The purse does not hold the money.",
+  description: "Give your agents a checkbook, not your card. PayPal charges the merchant. The purse does not hold the money.",
   manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.getItem('theme')==='light')document.documentElement.classList.remove('dark')}catch(e){}",
+              "try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}",
           }}
         />
       </head>
-      <body className={`${sans.variable} ${mono.variable} ${sans.className}`}>{children}</body>
+      <body className={`${display.variable} ${sans.variable} ${mono.variable}`}>{children}</body>
     </html>
   );
 }

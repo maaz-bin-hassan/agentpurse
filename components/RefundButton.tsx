@@ -32,7 +32,7 @@ export function RefundButton({ spendId, label }: { spendId: string; label: strin
       >
         {pending ? "Refunding…" : "Refund"}
       </button>
-      {message ? <span role="status">{message}</span> : null}
+      {message ? <span className="w-full text-sm text-muted" role="status">{message}</span> : null}
     </div>
   );
 }

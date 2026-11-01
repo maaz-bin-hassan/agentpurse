@@ -34,11 +34,11 @@ export function AllowanceForm({ agentId, agentName }: { agentId: string; agentNa
     >
       <label htmlFor={fieldId}>Raise {agentName}'s allowance</label>
       <input id={fieldId} inputMode="decimal" value={dollars} onChange={(event) => setDollars(event.target.value)} />
-      <p className="muted">A ledger cap. This does not move money.</p>
+      <p className="muted mt-1 mb-2 text-xs">A ledger cap. This does not move money.</p>
       <button className="btn secondary" type="submit" disabled={pending}>
         {pending ? "Saving…" : "Raise allowance"}
       </button>
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <p className="mt-2 text-sm" role="status">{message}</p> : null}
     </form>
   );
 }

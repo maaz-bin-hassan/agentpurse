@@ -7,12 +7,10 @@ import { postJson } from "@/components/post-json";
 export function SpendForm({
   agentId,
   agentName,
-  description,
   samples,
 }: {
   agentId: string;
   agentName: string;
-  description: string;
   samples: string[];
 }) {
   const router = useRouter();
@@ -42,21 +40,9 @@ export function SpendForm({
   }
 
   return (
-    <form className="agent-card" onSubmit={onSubmit}>
-      <div className="row">
-        <h3 style={{ margin: 0 }}>{agentName}</h3>
-      </div>
-      <p className="muted" style={{ marginTop: 4 }}>
-        {description}
-      </p>
-      <label htmlFor={fieldId}>Sentence</label>
-      <textarea
-        id={fieldId}
-        name="text"
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        required
-      />
+    <form onSubmit={onSubmit}>
+      <label htmlFor={fieldId}>What {agentName} wants to buy</label>
+      <textarea id={fieldId} name="text" rows={2} value={text} onChange={(event) => setText(event.target.value)} required />
       <div className="suggestions" aria-label={`${agentName} examples`}>
         {samples.map((sample) => (
           <button key={sample} type="button" onClick={() => setText(sample)}>
@@ -70,9 +56,9 @@ export function SpendForm({
         </button>
       </div>
       {message ? (
-        <p className={`form-error`} role="status" data-tone={tone} style={{ color: "inherit" }}>
-          <span className={`chip ${tone}`}>{tone === "allow" ? "Allow" : tone === "deny" ? "Deny" : tone === "hold" ? "Hold" : "Note"}</span>{" "}
-          {message}
+        <p className="mt-3 flex items-start gap-2 text-sm" role="status" data-tone={tone}>
+          <span className={`stamp slam ${tone}`}>{tone === "allow" ? "Allow" : tone === "deny" ? "Deny" : tone === "hold" ? "Hold" : "Note"}</span>
+          <span>{message}</span>
         </p>
       ) : null}
     </form>

@@ -41,7 +41,7 @@ export function HouseholdControls({ ownerId, panic, vaultStatus }: { ownerId: st
           </button>
         ) : null}
       </div>
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm" role="status">{message}</p> : null}
     </div>
   );
 }

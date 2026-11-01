@@ -2,130 +2,248 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --color-ink: #f5f7fb;
-  --color-muted: #9aa3b8;
-  --color-paper: #07080d;
-  --color-card: rgba(255, 255, 255, 0.045);
-  --color-line: rgba(255, 255, 255, 0.1);
-  --color-violet: #8b7cff;
-  --color-cyan: #3ee0c5;
-  --color-amber: #f5b942;
-  --color-rose: #ff6b8a;
-  --font-sans: var(--font-geist), "Inter", "Segoe UI", sans-serif;
+/* Paper is the default. Dark mode is the vault: its own steps, not an inversion. */
+:root {
+  --paper: #f6f1e4;
+  --card: #fcf9f0;
+  --sunk: #ebe4d1;
+  --ink: #14261f;
+  --muted: #4d5d55;
+  --line: rgba(20, 38, 31, 0.16);
+  --pine: #0f3d2e;
+  --pine-deep: #0a2d22;
+  --on-pine: #f6f1e4;
+  --on-pine-muted: #b7cbbd;
+  --brass: #c9962f;
+  --allow: #0a7247;
+  --hold: #96590a;
+  --deny: #c02c18;
+  --btn: #0f3d2e;
+  --btn-ink: #f6f1e4;
+  --mark-eye: #f6f1e4;
+  --shadow: 0 1px 0 rgba(20, 38, 31, 0.06), 0 14px 30px -18px rgba(20, 38, 31, 0.28);
+  --guilloche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cg fill='none' stroke='%230f3d2e' stroke-opacity='.1'%3E%3Cpath d='M0 20c20-26 40-26 60 0s40 26 60 0'/%3E%3Cpath d='M0 20c20 26 40 26 60 0s40-26 60 0'/%3E%3Cpath d='M0 20c20-13 40-13 60 0s40 13 60 0'/%3E%3Cpath d='M0 20c20 13 40 13 60 0s40-13 60 0'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.dark {
+  --paper: #0c1512;
+  --card: #131f1a;
+  --sunk: #1c2b25;
+  --ink: #f0ead9;
+  --muted: #a5b3aa;
+  --line: rgba(240, 234, 217, 0.15);
+  --pine: #123a2c;
+  --pine-deep: #0a1f18;
+  --brass: #e2b75a;
+  --allow: #5cd39a;
+  --hold: #eebb55;
+  --deny: #ff8468;
+  --btn: #f0ead9;
+  --btn-ink: #0c1512;
+  --mark-eye: #0c1512;
+  --shadow: 0 16px 34px -20px rgba(0, 0, 0, 0.8);
+  --guilloche: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cg fill='none' stroke='%23f0ead9' stroke-opacity='.07'%3E%3Cpath d='M0 20c20-26 40-26 60 0s40 26 60 0'/%3E%3Cpath d='M0 20c20 26 40 26 60 0s40-26 60 0'/%3E%3Cpath d='M0 20c20-13 40-13 60 0s40 13 60 0'/%3E%3Cpath d='M0 20c20 13 40 13 60 0s40-13 60 0'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-pine: var(--pine);
+  --color-pine-deep: var(--pine-deep);
+  --color-on-pine: var(--on-pine);
+  --color-on-pine-muted: var(--on-pine-muted);
+  --color-brass: var(--brass);
+  --color-allow: var(--allow);
+  --color-hold: var(--hold);
+  --color-deny: var(--deny);
+  --font-sans: var(--font-instrument), "Segoe UI", sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, serif;
+  --font-mono: var(--font-plex), Consolas, monospace;
 }
 
 @layer base {
-  html { color-scheme: dark; }
-  html:not(.dark) { color-scheme: light; }
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
   body {
     margin: 0;
     min-height: 100vh;
-    background:
-      radial-gradient(1100px 560px at 8% -12%, rgba(139, 124, 255, 0.28), transparent 58%),
-      radial-gradient(800px 480px at 100% 0%, rgba(62, 224, 197, 0.14), transparent 52%),
-      radial-gradient(700px 420px at 70% 110%, rgba(255, 107, 138, 0.08), transparent 50%),
-      #07080d;
-    color: #f5f7fb;
-    font-family: var(--font-geist), Inter, "Segoe UI", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-instrument), "Segoe UI", sans-serif;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
-  html:not(.dark) body {
-    background:
-      radial-gradient(900px 480px at 10% -10%, rgba(139, 124, 255, 0.18), transparent 55%),
-      radial-gradient(700px 400px at 100% 0%, rgba(62, 224, 197, 0.12), transparent 50%),
-      #f4f6fb;
-    color: #12141c;
+  h1, h2, h3 {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    font-optical-sizing: auto;
+    text-wrap: balance;
   }
-  :focus-visible { outline: 2px solid #8b7cff; outline-offset: 3px; }
-  ::selection { background: rgba(139, 124, 255, 0.35); }
+  a { color: inherit; text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  ::selection { background: var(--brass); color: #14261f; }
 }
 
 @layer components {
-  .glass {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
-    background-color: rgba(14, 16, 26, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow:
-      0 24px 70px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(22px);
-  }
-  html:not(.dark) .glass {
-    background: rgba(255, 255, 255, 0.82);
-    border-color: rgba(18, 20, 28, 0.08);
-    box-shadow: 0 18px 50px rgba(20, 24, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  .sheet {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
   }
   .panel {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
-    background-color: rgba(14, 16, 26, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(22px);
-    border-radius: 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
     padding: 1.25rem;
   }
-  html:not(.dark) .panel {
-    background: rgba(255, 255, 255, 0.82);
-    border-color: rgba(18, 20, 28, 0.08);
-    box-shadow: 0 18px 50px rgba(20, 24, 40, 0.08);
+  .shell { @apply mx-auto w-full max-w-3xl px-4 py-8 sm:px-6; }
+
+  /* Forest bands stay forest in both themes, like the cover of a checkbook. */
+  .band {
+    --mark-eye: var(--pine);
+    background: var(--pine);
+    color: var(--on-pine);
   }
-  .shell { @apply mx-auto w-full max-w-6xl px-4 py-8 sm:px-6; }
+
   .btn {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white px-4 py-2 text-sm font-medium text-black transition duration-200 hover:-translate-y-0.5 hover:bg-violet hover:text-white hover:shadow-[0_10px_30px_rgba(139,124,255,0.35)] active:translate-y-0 disabled:cursor-progress disabled:opacity-50 disabled:hover:translate-y-0;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-semibold no-underline transition duration-150 active:translate-y-px disabled:cursor-progress disabled:opacity-50;
+    background: var(--btn);
+    color: var(--btn-ink);
   }
+  .btn:hover:not(:disabled) { filter: brightness(1.18); }
+  .dark .btn:hover:not(:disabled) { filter: brightness(0.9); }
   .btn.secondary {
-    @apply border-white/15 bg-white/5 text-inherit shadow-none hover:bg-white/10 hover:text-inherit;
+    background: transparent;
+    color: inherit;
+    border-color: var(--line);
   }
+  .btn.secondary:hover:not(:disabled) { filter: none; background: var(--sunk); }
+  .band .btn { background: var(--on-pine); color: #0f3d2e; }
+  .band .btn.secondary { background: transparent; color: inherit; border-color: rgba(246, 241, 228, 0.3); }
+  .band .btn.secondary:hover:not(:disabled) { background: rgba(246, 241, 228, 0.1); }
   .btn.panic {
-    @apply min-h-20 min-w-56 border-rose/40 bg-rose px-8 text-base text-white shadow-[0_0_48px_rgba(255,107,138,0.45)] hover:bg-rose hover:text-white;
+    @apply min-h-16 px-8 text-base;
+    background: var(--deny);
+    color: #fff;
   }
-  .muted { color: #9aa3b8; }
-  html:not(.dark) .muted { color: #5c6478; }
-  .row { @apply flex items-center justify-between gap-3; }
+  .dark .btn.panic { color: #0c1512; }
+
+  .muted { color: var(--muted); }
+  .row { @apply flex flex-wrap items-center justify-between gap-3; }
   .actions { @apply mt-3 flex flex-wrap gap-2; }
   .stack { @apply flex flex-col gap-3; }
-  label { @apply mb-1 block text-xs tracking-wide text-[#9aa3b8] uppercase; }
-  input, textarea, select {
-    @apply w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-inherit;
+
+  label {
+    @apply mb-1.5 block text-[11px] font-medium tracking-[0.08em] uppercase;
+    color: var(--muted);
+    font-family: var(--font-plex), Consolas, monospace;
   }
-  html:not(.dark) input, html:not(.dark) textarea, html:not(.dark) select { @apply border-black/10 bg-white; }
-  .chip { @apply inline-flex rounded-full border border-white/10 px-2 py-0.5 text-[11px] tracking-wide uppercase; }
-  .chip.allow, .chip.hold, .chip.deny { @apply border-transparent text-black; }
-  .chip.allow { background: #3ee0c5; }
-  .chip.hold { background: #f5b942; }
-  .chip.deny { background: #ff6b8a; }
-  .money { font-variant-numeric: tabular-nums; }
-  .eyebrow { @apply text-xs tracking-[0.18em] text-violet uppercase; }
-  .lede { @apply max-w-2xl text-lg text-[#b7c0d4]; }
-  .rule { @apply my-5 h-px border-0 bg-white/10; }
-  .topbar { @apply mb-8 flex items-center justify-between gap-4; }
-  .wordmark { @apply text-lg tracking-tight text-inherit no-underline; }
-  .wordmark span { color: #8b7cff; }
+  input, textarea, select {
+    @apply w-full rounded-lg border px-3 py-2 text-sm text-inherit;
+    background: var(--paper);
+    border-color: var(--line);
+  }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--brass); outline-offset: 0; }
+
+  .eyebrow {
+    @apply text-[11px] font-medium tracking-[0.14em] uppercase;
+    color: var(--muted);
+    font-family: var(--font-plex), Consolas, monospace;
+  }
+  .band .eyebrow { color: var(--on-pine-muted); }
+  .money { font-family: var(--font-plex), Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .lede { @apply max-w-2xl text-lg leading-relaxed; color: var(--muted); }
+
+  .chip {
+    @apply inline-flex rounded border px-1.5 py-0.5 text-[11px];
+    border-color: var(--line);
+    color: var(--muted);
+    font-family: var(--font-plex), Consolas, monospace;
+  }
+
+  /* The clerk's rubber stamp. Every decision wears one, with a word, never color alone. */
+  .stamp {
+    @apply inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold tracking-[0.12em] whitespace-nowrap uppercase;
+    border: 3px double currentColor;
+    font-family: var(--font-plex), Consolas, monospace;
+    transform: rotate(-2.5deg);
+  }
+  .stamp.allow { color: var(--allow); }
+  .stamp.hold { color: var(--hold); }
+  .stamp.deny { color: var(--deny); }
+  .stamp.quiet { color: var(--muted); }
+  .stamp.large { @apply rounded-md px-3 py-1 text-xl; border-width: 5px; }
+  .stamp.slam { animation: slam 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+
+  .cheque {
+    @apply relative overflow-hidden;
+    background-color: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    background-image: var(--guilloche);
+    background-size: 120px 40px;
+  }
+  .micr { @apply text-[11px] tracking-[0.16em]; color: var(--muted); font-family: var(--font-plex), Consolas, monospace; }
+
+  /* The tear line between a cheque and its stub. */
+  .perforated { position: relative; }
+  .perforated::after {
+    display: none;
+    content: "";
+    position: absolute;
+    inset: 0 -3px 0 auto;
+    width: 6px;
+    background: radial-gradient(circle at center, var(--paper) 2.5px, transparent 3px) 0 0 / 6px 14px repeat-y;
+  }
+
+  @media (min-width: 48rem) {
+    .perforated::after { display: block; }
+  }
+
+  .meter { @apply relative h-1.5 w-full overflow-hidden rounded-full; background: var(--sunk); }
+  .meter > span { @apply block h-full rounded-full transition-[width] duration-700; background: var(--ink); }
+
+  .ledger > * + * { border-top: 1px solid var(--line); }
+
   .suggestions { @apply mt-2 flex flex-wrap gap-2; }
   .suggestions button {
-    @apply rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-left text-xs text-inherit transition hover:border-violet/50 hover:bg-white/10;
+    @apply cursor-pointer rounded-md border px-2.5 py-1.5 text-left text-xs transition;
+    border-color: var(--line);
   }
+  .suggestions button:hover { background: var(--sunk); }
+
   .whisper { color: transparent; user-select: all; }
-  [data-tone="allow"] { animation: rise 0.45s ease; }
-  [data-tone="hold"] { animation: rise 0.45s ease; }
   [data-tone="deny"] { animation: deny-shake 0.45s ease; }
-  .lift { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-  .lift:hover { transform: translateY(-3px); }
+
+  .agent-blink { transform-box: fill-box; transform-origin: center; animation: blink 5.2s infinite; }
+  .agent-look { animation: look 7s ease-in-out infinite; }
 }
 
-@keyframes rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+@keyframes slam {
+  from { opacity: 0; transform: rotate(-9deg) scale(2.1); }
+  to { opacity: 1; transform: rotate(-2.5deg) scale(1); }
 }
 @keyframes deny-shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
 }
-@keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(62, 224, 197, 0.45); }
-  100% { box-shadow: 0 0 0 16px rgba(62, 224, 197, 0); }
+@keyframes blink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  97% { transform: scaleY(0.08); }
+}
+@keyframes look {
+  0%, 38%, 100% { transform: translateX(0); }
+  44%, 62% { transform: translateX(1.6px); }
+  68%, 84% { transform: translateX(-1.6px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -11,7 +11,7 @@ export function AnimatedNumber({
   className?: string;
 }) {
   const reduce = useReducedMotion();
-  const value = useMotionValue(reduce ? cents : 0);
+  const value = useMotionValue(cents);
   const text = useTransform(value, (latest) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(latest / 100),
   );
