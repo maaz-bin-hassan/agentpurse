@@ -1,6 +1,7 @@
 export type PaypalMode = "mock" | "live";
 export type AiMode = "mock" | "live";
 export type AiProvider = "groq" | "gemini";
+export type Channel3Mode = "mock" | "live";
 
 export type AppEnv = Record<string, string | undefined>;
 
@@ -10,6 +11,10 @@ export function paypalMode(env: AppEnv = process.env): PaypalMode {
 
 export function aiMode(env: AppEnv = process.env): AiMode {
   return env.AI_MODE?.toLowerCase() === "live" ? "live" : "mock";
+}
+
+export function channel3Mode(env: AppEnv = process.env): Channel3Mode {
+  return env.CHANNEL3_MODE?.toLowerCase() === "live" ? "live" : "mock";
 }
 
 export function aiProvider(env: AppEnv = process.env): AiProvider {
@@ -41,6 +46,8 @@ export function healthPayload(env: AppEnv = process.env) {
     paypalMode: paypal,
     sandboxDemo: sandboxDemo(env),
     aiMode: ai,
+    channel3Mode: channel3Mode(env),
+    channel3Configured: Boolean(env.CHANNEL3_API_KEY),
     credentialsRequired: false,
     livePaypalConfigured: Boolean(env.PAYPAL_CLIENT_ID && env.PAYPAL_CLIENT_SECRET),
     liveAiConfigured: Boolean(env.GROQ_API_KEY || env.GEMINI_API_KEY),

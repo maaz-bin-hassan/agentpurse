@@ -19,6 +19,7 @@ const KEYWORDS: Record<Category, string[]> = {
   travel: ["flight", "hotel", "rail", "train", "ticket", "airfare"],
   software: ["software", "subscription", "saas", "storage"],
   electronics: ["charger", "gadget", "cable", "adapter", "laptop"],
+  shopping: [],
 };
 
 const MONEY = [

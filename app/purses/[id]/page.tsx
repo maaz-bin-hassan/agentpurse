@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Dashboard, type DashboardData } from "@/components/dashboard/dashboard";
-import { paypalMode } from "@/src/config";
+import { channel3Mode, paypalMode } from "@/src/config";
 import { getDb } from "@/src/db/connection";
 import { loadHousehold } from "@/src/server/view";
 
@@ -28,6 +28,8 @@ export default async function PursePage({
     owner: view.owner,
     vault: view.vault ? { status: view.vault.status, paymentTokenId: view.vault.paymentTokenId, payerEmail: view.vault.payerEmail } : null,
     paypalMode: paypalMode(),
+    mockCatalog: channel3Mode() === "mock",
+    watches: view.watches,
     linkNotice: (paypal && LINK_NOTICES[paypal]) || null,
     agents: view.agents,
     holds: view.holds,

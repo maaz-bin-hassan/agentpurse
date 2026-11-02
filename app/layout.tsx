@@ -22,7 +22,7 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "AgentPurse",
-  description: "Give your agents a checkbook, not your card. PayPal charges the merchant. The purse does not hold the money.",
+  description: "Your agent can shop. Only the clerk can pay. Channel3 finds the offer, PayPal moves the money, and the purse never holds it.",
   manifest: "/manifest.json",
 };
 

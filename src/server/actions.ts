@@ -1,5 +1,7 @@
 import type { AppEnv } from "@/src/config";
 import { assessIntent } from "@/src/ai/guard";
+import { createChannel3Client, Channel3Error, type Channel3Client } from "@/src/channel3";
+import { readOffer } from "@/src/channel3/catalog";
 import { parseSpendIntent } from "@/src/ai/intent";
 import { merchantPayee } from "@/src/domain/payee";
 import { formatMoney } from "@/src/domain/money";
@@ -43,6 +45,23 @@ export interface ActionOptions {
   now?: Date;
   env?: AppEnv;
   paypal?: PayPalClient;
+  channel3?: Channel3Client;
+}
+
+/** A catalog purchase. Every value was read on the server, so the sentence parser is skipped. */
+export interface VerifiedPurchase {
+  merchantName: string;
+  amountCents: number;
+  quotedCents: number;
+  category: IntentRecord["category"];
+  purpose: string;
+  productId: string;
+  productTitle: string;
+  listingText: string;
+  offerUrl: string;
+  imageUrl: string | null;
+  priceNote: string | null;
+  quoteId?: string | null;
 }
 
 function clientFor(sql: Sql, options?: ActionOptions): PayPalClient {
@@ -59,7 +78,7 @@ function captureIdOf(order: PaypalOrder): string | null {
 
 async function clerkFor(
   sql: Sql,
-  input: { owner: Owner; agent: Agent; vault: Vault | undefined; merchant: Merchant | undefined; merchantName: string | null; amountCents: number | null; currency: string | null; category: IntentRecord["category"]; intentComplete: boolean; now: Date; humanApproved?: boolean },
+  input: { owner: Owner; agent: Agent; vault: Vault | undefined; merchant: Merchant | undefined; merchantName: string | null; amountCents: number | null; currency: string | null; category: IntentRecord["category"]; intentComplete: boolean; now: Date; humanApproved?: boolean; quotedCents?: number | null },
 ): Promise<ClerkResult> {
   const spent = await netSpentCents(sql, input.agent.id);
   const daily = await spentSince(sql, input.agent.id, periodStart("daily", input.now));
@@ -84,6 +103,7 @@ async function clerkFor(
     allowanceRemainingCents: input.agent.allowanceCents - spent,
     approvalThresholdCents: input.agent.approvalThresholdCents,
     humanApproved: input.humanApproved,
+    quotedCents: input.quotedCents,
   });
 }
 
@@ -154,7 +174,7 @@ export async function requestPurchase(
   sql: Sql,
   agentId: string,
   text: string,
-  options?: ActionOptions & { originalTask?: string; pageExcerpt?: string | null },
+  options?: ActionOptions & { originalTask?: string; pageExcerpt?: string | null; verified?: VerifiedPurchase },
 ): Promise<ActionResult<{ ok: true; explanation: string; intent: IntentRecord; spend: IntentRecord; order: PaypalOrder | null } | { ok: false; error: string }>> {
   const now = options?.now ?? new Date();
   const trimmed = text.trim();
@@ -164,7 +184,13 @@ export async function requestPurchase(
   const owner = await getOwner(sql, agent.ownerId);
   if (!owner) return fail(404, "Unknown household.");
   const vault = await getVault(sql, owner.id);
-  const intentParsed = await parseSpendIntent(trimmed, { merchants: await listMerchants(sql), env: options?.env ?? process.env });
+  const verified = options?.verified;
+  const intentParsed = verified
+    ? { merchantName: verified.merchantName, amountCents: verified.amountCents, currency: "USD" as const, category: verified.category, purpose: verified.purpose, confidence: 1, complete: true }
+    : await parseSpendIntent(trimmed, { merchants: await listMerchants(sql), env: options?.env ?? process.env });
+  const catalog = verified
+    ? { productId: verified.productId, productTitle: verified.productTitle, offerUrl: verified.offerUrl, imageUrl: verified.imageUrl, priceNote: verified.priceNote }
+    : { productId: null, productTitle: null, offerUrl: null, imageUrl: null, priceNote: null };
   const merchant = intentParsed.merchantName ? await findMerchantByName(sql, intentParsed.merchantName) : undefined;
   const originalTask = options?.originalTask?.trim() || trimmed;
   const guard = assessIntent({
@@ -174,6 +200,7 @@ export async function requestPurchase(
     category: intentParsed.category,
     purpose: intentParsed.purpose,
     pageExcerpt: options?.pageExcerpt,
+    listing: verified ? { title: verified.productTitle, text: verified.listingText } : null,
   });
   if (guard.decision === "block") {
     const at = stamp(now);
@@ -202,7 +229,8 @@ export async function requestPurchase(
       paypalOrderId: null,
       captureId: null,
       approvalMethod: null,
-      quoteId: null,
+      quoteId: verified?.quoteId ?? null,
+      ...catalog,
       createdAt: at,
       updatedAt: at,
     });
@@ -221,6 +249,7 @@ export async function requestPurchase(
     category: intentParsed.category,
     intentComplete: intentParsed.complete,
     now,
+    quotedCents: verified?.quotedCents,
   });
   const at = stamp(now);
   const intentId = newId("intent");
@@ -247,7 +276,8 @@ export async function requestPurchase(
     paypalOrderId: null,
     captureId: null,
     approvalMethod: clerk.decision === "allow" ? "auto" : null,
-    quoteId: null,
+    quoteId: verified?.quoteId ?? null,
+    ...catalog,
     createdAt: at,
     updatedAt: at,
   };
@@ -327,13 +357,24 @@ export async function approveIntent(
   const vault = owner ? await getVault(sql, owner.id) : undefined;
   if (!agent || !owner || !vault) return fail(404, "This intent is missing its household.");
   const merchant = intent.merchantName ? await findMerchantByName(sql, intent.merchantName) : undefined;
+  let currentCents = intent.amountCents;
+  if (intent.productId && intent.merchantName) {
+    try {
+      const client = options?.channel3 ?? createChannel3Client(sql, options?.env ?? process.env);
+      currentCents = (await readOffer(client, { productId: intent.productId, domain: intent.merchantName })).amountCents;
+    } catch (error) {
+      if (error instanceof Channel3Error) return fail(error.status, `Could not confirm the price. ${error.message}`);
+      throw error;
+    }
+  }
   const clerk = await clerkFor(sql, {
     owner,
     agent,
     vault,
     merchant,
     merchantName: intent.merchantName,
-    amountCents: intent.amountCents,
+    amountCents: currentCents,
+    quotedCents: intent.productId ? intent.amountCents : null,
     currency: intent.currency,
     category: intent.category,
     intentComplete: true,

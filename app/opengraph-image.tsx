@@ -20,7 +20,7 @@ export default function OpenGraphImage() {
       >
         <div style={{ fontSize: 26, letterSpacing: "0.14em", color: "#b7cbbd" }}>AGENTPURSE</div>
         <div style={{ fontSize: 88, lineHeight: 1, letterSpacing: "-0.03em", maxWidth: 960 }}>
-          Give your agents a checkbook, not your card.
+          Your agent can shop. Only the clerk can pay.
         </div>
         <div style={{ fontSize: 26, color: "#b7cbbd" }}>PayPal charges the merchant. The purse does not hold the money.</div>
       </div>

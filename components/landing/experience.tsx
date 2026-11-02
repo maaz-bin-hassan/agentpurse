@@ -45,6 +45,8 @@ const FEATURES = [
   ["Intent guard", "Every purchase is compared with the original task. Text hidden in a page cannot change the task."],
   ["Your signature", "Over your line, the cheque waits for you to sign it on the dashboard."],
   ["Kill switch", "Pause one agent, delete the vault token, or freeze the whole household."],
+  ["Shopping", "Channel3 finds products and compares retailers. The price comes from the server, never from the agent."],
+  ["Price watches", "Tell an agent to wait for a price. When it drops, the clerk rules on the purchase like any other."],
   ["Receipts", "Every capture and refund stays on the request that caused it, ready to filter."],
   ["MCP", "Claude, Cursor, and Grok Bot all ask through the same purchase tools."],
 ];
@@ -82,10 +84,10 @@ export function LandingExperience() {
             <div>
               <p className="eyebrow">Spending controls for AI agents, on PayPal</p>
               <h1 className="mt-4 text-5xl leading-[1.02] sm:text-7xl">
-                Give your agents a <em className="text-brass">checkbook,</em> not your card.
+                Your agent can <em className="text-brass">shop.</em> Only the clerk can pay.
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-on-pine-muted">
-                Link PayPal once and set an allowance for each agent. A clerk written in plain code allows, holds, or refuses every purchase, and no model can talk it out of a no.
+                Agents find real offers through Channel3 and pay through your saved PayPal wallet. A clerk written in plain code allows, holds, or refuses every purchase, and no model can talk it out of a no.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link className="btn" href="/purses/purse_maaz">Open Maaz&apos;s household</Link>

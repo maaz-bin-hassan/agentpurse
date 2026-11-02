@@ -12,6 +12,8 @@ export function Cheque({
   agentName,
   status = "active",
   stamp,
+  imageUrl,
+  buyUrl,
   children,
 }: {
   number: string;
@@ -22,6 +24,8 @@ export function Cheque({
   agentName: string;
   status?: string;
   stamp?: { tone: StampTone; label: string };
+  imageUrl?: string | null;
+  buyUrl?: string | null;
   children?: ReactNode;
 }) {
   return (
@@ -41,6 +45,14 @@ export function Cheque({
         <span className="eyebrow mr-2">Memo</span>
         {memo}
       </p>
+      {buyUrl ? (
+        <div className="mt-3 flex items-center gap-3">
+          {imageUrl ? <img src={imageUrl} alt="" className="h-14 w-16 rounded-md border border-line object-cover" /> : null}
+          <p className="text-xs text-muted">
+            <a className="underline" href={buyUrl} target="_blank" rel="noreferrer">See this offer</a>. We may earn a commission when you buy through links on this page.
+          </p>
+        </div>
+      ) : null}
       <div className="mt-4 flex items-center gap-2">
         <AgentFace id={agentId} status={status} size="sm" />
         <p className="text-sm">

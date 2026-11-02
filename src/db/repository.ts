@@ -11,6 +11,7 @@ import {
   type IntentStatus,
   type Merchant,
   type Owner,
+  type PriceWatch,
   type Receipt,
   type RuleHit,
   type Vault,
@@ -312,6 +313,11 @@ function mapIntent(row: SqlRow): IntentRecord {
     captureId: nullableText(row, "capture_id"),
     approvalMethod: nullableText(row, "approval_method"),
     quoteId: nullableText(row, "quote_id"),
+    productId: nullableText(row, "product_id"),
+    productTitle: nullableText(row, "product_title"),
+    offerUrl: nullableText(row, "offer_url"),
+    imageUrl: nullableText(row, "image_url"),
+    priceNote: nullableText(row, "price_note"),
     createdAt: text(row, "created_at"),
     updatedAt: text(row, "updated_at"),
   };
@@ -341,6 +347,11 @@ export interface NewIntent {
   captureId: string | null;
   approvalMethod: string | null;
   quoteId: string | null;
+  productId?: string | null;
+  productTitle?: string | null;
+  offerUrl?: string | null;
+  imageUrl?: string | null;
+  priceNote?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -351,8 +362,8 @@ export async function insertIntent(sql: Sql, intent: NewIntent): Promise<void> {
       id, agent_id, owner_id, original_task, raw_text, page_excerpt, merchant_name, merchant_email,
       amount_cents, currency, category, purpose, confidence, guard_decision, guard_reasons, decision,
       decision_reasons, explanation, status, paypal_order_id, capture_id, approval_method, quote_id,
-      created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      product_id, product_title, offer_url, image_url, price_note, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       intent.id,
       intent.agentId,
@@ -377,6 +388,11 @@ export async function insertIntent(sql: Sql, intent: NewIntent): Promise<void> {
       intent.captureId,
       intent.approvalMethod,
       intent.quoteId,
+      intent.productId ?? null,
+      intent.productTitle ?? null,
+      intent.offerUrl ?? null,
+      intent.imageUrl ?? null,
+      intent.priceNote ?? null,
       intent.createdAt,
       intent.updatedAt,
     ],
@@ -664,12 +680,14 @@ export async function insertQuote(
     pageExcerpt: string | null;
     expiresAt: string;
     createdAt: string;
+    productId?: string | null;
+    offerUrl?: string | null;
   },
 ): Promise<void> {
   await sql.exec(
     `INSERT INTO quotes (
-      id, agent_id, merchant_name, merchant_email, category, amount_cents, currency, description, original_task, page_excerpt, expires_at, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, agent_id, merchant_name, merchant_email, category, amount_cents, currency, description, original_task, page_excerpt, expires_at, created_at, product_id, offer_url
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       quote.id,
       quote.agentId,
@@ -683,6 +701,8 @@ export async function insertQuote(
       quote.pageExcerpt,
       quote.expiresAt,
       quote.createdAt,
+      quote.productId ?? null,
+      quote.offerUrl ?? null,
     ],
   );
 }
@@ -694,6 +714,69 @@ export async function getQuote(sql: Sql, id: string): Promise<SqlRow | undefined
 /** Returns false when the quote was already spent. One statement, so two calls cannot both win. */
 export async function claimQuote(sql: Sql, id: string, at: string): Promise<boolean> {
   return Boolean(await sql.get("UPDATE quotes SET used_at = ? WHERE id = ? AND used_at IS NULL RETURNING id", [at, id]));
+}
+
+function mapWatch(row: SqlRow): PriceWatch {
+  return {
+    id: text(row, "id"),
+    ownerId: text(row, "owner_id"),
+    agentId: text(row, "agent_id"),
+    productId: text(row, "product_id"),
+    productTitle: text(row, "product_title"),
+    domain: text(row, "domain"),
+    targetCents: integer(row, "target_cents"),
+    startCents: integer(row, "start_cents"),
+    originalTask: text(row, "original_task"),
+    subscriptionId: nullableText(row, "subscription_id"),
+    status: text(row, "status") as PriceWatch["status"],
+    intentId: nullableText(row, "intent_id"),
+    createdAt: text(row, "created_at"),
+    updatedAt: text(row, "updated_at"),
+  };
+}
+
+export async function insertWatch(sql: Sql, watch: PriceWatch): Promise<void> {
+  await sql.exec(
+    `INSERT INTO price_watches (
+      id, owner_id, agent_id, product_id, product_title, domain, target_cents, start_cents, original_task, subscription_id, status, intent_id, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [watch.id, watch.ownerId, watch.agentId, watch.productId, watch.productTitle, watch.domain, watch.targetCents, watch.startCents, watch.originalTask, watch.subscriptionId, watch.status, watch.intentId, watch.createdAt, watch.updatedAt],
+  );
+}
+
+export async function getWatch(sql: Sql, id: string): Promise<PriceWatch | undefined> {
+  const row = await sql.get("SELECT * FROM price_watches WHERE id = ?", [id]);
+  return row ? mapWatch(row) : undefined;
+}
+
+export async function listWatches(sql: Sql, ownerId: string): Promise<PriceWatch[]> {
+  return (await sql.all("SELECT * FROM price_watches WHERE owner_id = ? ORDER BY created_at DESC", [ownerId])).map(mapWatch);
+}
+
+export async function watchesForSubscription(sql: Sql, subscriptionId: string): Promise<PriceWatch[]> {
+  return (await sql.all("SELECT * FROM price_watches WHERE subscription_id = ? AND status = 'watching'", [subscriptionId])).map(mapWatch);
+}
+
+/** Returns false when another delivery already took this watch. */
+export async function claimWatch(sql: Sql, id: string, at: string): Promise<boolean> {
+  return Boolean(await sql.get("UPDATE price_watches SET status = 'triggered', updated_at = ? WHERE id = ? AND status = 'watching' RETURNING id", [at, id]));
+}
+
+export async function finishWatch(sql: Sql, id: string, intentId: string | null, at: string): Promise<void> {
+  await sql.exec("UPDATE price_watches SET intent_id = ?, updated_at = ? WHERE id = ?", [intentId, at, id]);
+}
+
+export async function reopenWatch(sql: Sql, id: string, at: string): Promise<void> {
+  await sql.exec("UPDATE price_watches SET status = 'watching', updated_at = ? WHERE id = ?", [at, id]);
+}
+
+export async function cancelWatchRow(sql: Sql, id: string, at: string): Promise<void> {
+  await sql.exec("UPDATE price_watches SET status = 'cancelled', updated_at = ? WHERE id = ?", [at, id]);
+}
+
+/** Returns false for a webhook delivery already seen. */
+export async function recordChannel3Event(sql: Sql, id: string, eventType: string, at: string): Promise<boolean> {
+  return Boolean(await sql.get("INSERT INTO channel3_events (id, event_type, created_at) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING RETURNING id", [id, eventType, at]));
 }
 
 export async function insertNotification(

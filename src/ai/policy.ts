@@ -17,6 +17,7 @@ const KEYWORDS: Record<Category, string[]> = {
   groceries: ["grocery", "groceries", "food"],
   travel: ["travel", "flight", "hotel", "train"],
   software: ["software", "saas", "subscription"],
+  shopping: [],
   electronics: ["electronics", "charger", "gadget", "household"],
 };
 

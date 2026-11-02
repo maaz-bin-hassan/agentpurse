@@ -12,7 +12,9 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 | MIT license visible in the repo | Done. `LICENSE` is MIT, copyright 2026 MaAz Khan Hassan. | `LICENSE` |
 | Project uses PayPal and AI | Done. Vault + Orders v2 ran on the real sandbox, plus a guard. Mock mode needs no keys. | `docs/ARCHITECTURE.md` |
 | Working demo judges can run | Live at https://agentpurse.vercel.app on the PayPal sandbox. | README **For judges** |
-| No real money, no real retailers | Done. Merchants are fictional. Mock mode never calls PayPal. | Seed data |
+| No real money | Done. PayPal runs in the sandbox only. | `docs/DEPLOY.md` |
+| Real retailers | Mock catalog uses fictional shops. Live Channel3 shows real ones, so check the rules before showing brands in the video. | `docs/DEMO.md` |
+| Best Use of Channel3 | Channel3 is built in. Live key run is still to do. | `docs/ARCHITECTURE.md` |
 | Video under 3 minutes, no copyrighted music | Not recorded yet. Script and shot list are ready. | `docs/DEMO.md` |
 | List every AI tool used | Done, including Cursor and Grok Bot. | `docs/AI-TOOLS.md` |
 | Sandbox credentials available to judges through 15 December 2026 | Not in the repo, on purpose. | MaAz keeps them |

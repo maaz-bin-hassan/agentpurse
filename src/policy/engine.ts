@@ -23,6 +23,8 @@ export interface ClerkInput {
   approvalThresholdCents: number;
   /** When a person is approving a hold, skip the threshold and trust rules. Caps still apply. */
   humanApproved?: boolean;
+  /** The catalog price the quote recorded. amountCents is then the price read just now. */
+  quotedCents?: number | null;
 }
 
 export interface ClerkResult {
@@ -90,6 +92,14 @@ export function evaluateSpend(input: ClerkInput): ClerkResult {
     );
   }
   if (input.amountCents != null && input.amountCents > 0) {
+    if (input.quotedCents != null && amount > input.quotedCents) {
+      denies.push(
+        hit(
+          "price_moved",
+          `The price rose from ${formatMoney(input.quotedCents, input.purseCurrency)} to ${formatMoney(amount, input.purseCurrency)} after the quote. Ask for a new quote.`,
+        ),
+      );
+    }
     if (amount > input.perTxnCapCents) {
       denies.push(
         hit(

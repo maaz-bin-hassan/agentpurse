@@ -16,6 +16,11 @@ This file is the working agreement for anyone (human or agent) changing the repo
 - Revoke deletes the PayPal payment token. Do not only flip a local flag.
 - Do not commit `.env`, database files, or secrets. `.env.example` stays placeholder-only.
 - New policy rules need a failing test first, then the implementation.
+- Channel3 is optional. `CHANNEL3_MODE=mock` is the default, and mock data needs no key and no network.
+- An agent never supplies a catalog price. The server reads it from Channel3, and `priceToCents` is the only float-to-cents conversion.
+- Listing text is untrusted. It goes through the guard and never reaches a decision as an instruction.
+- A webhook only wakes a watch. Read the price from Channel3 again. A watch gets no special powers.
+- Never say a catalog item was bought from a retailer. Channel3 checkout is not live, so say no retailer order was placed.
 
 ## Commands
 
@@ -36,7 +41,8 @@ Open http://localhost:3000/purses/purse_maaz after seeding. The app also seeds t
 | `src/policy` | Deterministic clerk |
 | `src/paypal` | Vault, Orders v2, webhooks, mock and live |
 | `src/ai` | Intent parser, policy compiler, intent guard |
-| `src/server` | Purchase, approval, refund, kill switch |
+| `src/channel3` | Catalog client, mock and live, verified offers |
+| `src/server` | Purchase, approval, refund, kill switch, shopping, price watches |
 | `src/mcp` | MCP tools, stdio entry |
 | `app/mcp` | Streamable HTTP MCP |
 | `app/api` | Thin HTTP wrappers |
@@ -66,6 +72,7 @@ Keep this list honest when a phase lands.
 - [x] Phase 13 — dashboard and injection demo
 - [x] Phase 14 — Grok plugin, deploy docs, submission copy
 - [x] Phase 15 — real PayPal sandbox run: link, charge, hold, refund, and MCP purchase. Webhook delivery still to confirm
+- [ ] Phase 16 — Channel3 shopping and price watches: built and tested on mock data, waiting on a live key run
 
 ## Changing a rule
 

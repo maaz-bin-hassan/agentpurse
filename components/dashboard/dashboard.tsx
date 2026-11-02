@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bot, Inbox, LayoutDashboard, Power, Receipt, Shield } from "lucide-react";
+import { Bot, Inbox, LayoutDashboard, Power, Receipt, Shield, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -14,6 +14,7 @@ import { HouseholdControls } from "@/components/HouseholdControls";
 import { AnimatedNumber } from "@/components/motion/animated-number";
 import { StampBurst } from "@/components/motion/stamp-burst";
 import { RefundButton } from "@/components/RefundButton";
+import { ShopPanel, type WatchRow } from "@/components/shop/shop-panel";
 import { SpendForm } from "@/components/SpendForm";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DEMO_KEYS } from "@/src/domain/demo-keys";
@@ -44,11 +45,16 @@ type Intent = {
   rawText: string;
   category: string | null;
   guardDecision: string | null;
+  productTitle: string | null;
+  offerUrl: string | null;
+  imageUrl: string | null;
+  priceNote: string | null;
   createdAt: string;
 };
 
 type Receipt = {
   id: string;
+  intentId: string;
   agentId: string;
   merchantName: string;
   kind: "capture" | "refund";
@@ -64,6 +70,8 @@ export type DashboardData = {
   owner: { id: string; name: string; email: string; panicFrozen: boolean };
   vault: { status: string; paymentTokenId: string | null; payerEmail: string | null } | null;
   paypalMode: "mock" | "live";
+  mockCatalog: boolean;
+  watches: WatchRow[];
   linkNotice: string | null;
   agents: Agent[];
   holds: Intent[];
@@ -76,6 +84,7 @@ export type DashboardData = {
 
 const NAV = [
   { id: "Overview", icon: LayoutDashboard },
+  { id: "Shop", icon: ShoppingBag },
   { id: "Agents", icon: Bot },
   { id: "Approvals", icon: Inbox },
   { id: "Receipts", icon: Receipt },
@@ -108,7 +117,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
   const [receiptKind, setReceiptKind] = useState<"all" | "capture" | "refund">("all");
   const [receiptAgent, setReceiptAgent] = useState("all");
   const [paid, setPaid] = useState(false);
-  const { owner, vault, paypalMode, linkNotice, agents, holds, captured, intents, receipts, notifications, latestDetail } = data;
+  const { owner, vault, paypalMode, mockCatalog, watches, linkNotice, agents, holds, captured, intents, receipts, notifications, latestDetail } = data;
 
   const byCategory = useMemo(() => {
     const totals = new Map<string, number>();
@@ -217,8 +226,10 @@ export function Dashboard({ data }: { data: DashboardData }) {
                   <HoldActions
                     key={hold.id}
                     spendId={hold.id}
-                    title={hold.merchantName ?? "Request"}
-                    explanation={hold.explanation ?? hold.rawText}
+                    title={hold.productTitle ?? hold.merchantName ?? "Request"}
+                    explanation={[hold.explanation ?? hold.rawText, hold.priceNote].filter(Boolean).join(" ")}
+                    imageUrl={hold.imageUrl}
+                    buyUrl={hold.offerUrl}
                     amount={formatMoney(hold.amountCents ?? 0, hold.currency ?? undefined)}
                     agentId={hold.agentId}
                     agentName={agentName(hold.agentId)}
@@ -253,7 +264,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
                           <li key={intent.id} className="flex items-start gap-3 px-5 py-3">
                             <AgentFace id={intent.agentId} status="active" size="sm" />
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium">{intent.merchantName ?? "Request"}</p>
+                              <p className="font-medium">{intent.productTitle ?? intent.merchantName ?? "Request"}</p>
                               <p className="line-clamp-2 text-sm text-muted">{intent.explanation ?? intent.rawText}</p>
                             </div>
                             <div className="flex shrink-0 flex-col items-end gap-1">
@@ -282,6 +293,8 @@ export function Dashboard({ data }: { data: DashboardData }) {
                   ) : null}
                 </div>
               ) : null}
+
+              {section === "Shop" ? <ShopPanel ownerId={owner.id} watches={watches} mockCatalog={mockCatalog} onPaid={() => setPaid(true)} /> : null}
 
               {section === "Agents" ? (
                 <div className="space-y-4">
@@ -363,7 +376,9 @@ export function Dashboard({ data }: { data: DashboardData }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredReceipts.map((receipt) => (
+                        {filteredReceipts.map((receipt) => {
+                          const catalog = intents.find((intent) => intent.id === receipt.intentId && intent.offerUrl);
+                          return (
                           <tr key={receipt.id} className="border-t border-line align-top">
                             <td className="money py-2.5 pr-4 text-xs whitespace-nowrap text-muted">{receipt.createdAt.slice(0, 16).replace("T", " ")}</td>
                             <td className="py-2.5 pr-4">
@@ -374,11 +389,17 @@ export function Dashboard({ data }: { data: DashboardData }) {
                                   PayPal order {receipt.paypalOrderId}{receipt.captureId ? ` · capture ${receipt.captureId}` : ""}
                                 </div>
                               ) : null}
+                              {catalog?.offerUrl ? (
+                                <div className="mt-0.5 text-xs text-muted">
+                                  {catalog.productTitle}. Sandbox settlement. No retailer order placed. <a className="underline" href={catalog.offerUrl} target="_blank" rel="noreferrer">Buy link</a>. We may earn a commission when you buy through links on this page.
+                                </div>
+                              ) : null}
                             </td>
                             <td className="py-2.5 pr-4 capitalize">{receipt.kind}</td>
                             <td className="money py-2.5 text-right whitespace-nowrap">{receipt.kind === "refund" ? "+" : "−"}{formatMoney(receipt.amountCents, receipt.currency)}</td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

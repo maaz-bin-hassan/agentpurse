@@ -6,7 +6,7 @@ AgentPurse
 
 ## Tagline
 
-The purse an agent spends from. PayPal charges the merchant. The model does not move the money.
+Your agent can shop. Only the clerk can pay. Channel3 finds the offer, PayPal moves the money, and the model decides neither.
 
 ## About the project
 
@@ -14,6 +14,11 @@ Agents are starting to buy things. A prompt is not a receipt, and a wallet the a
 
 ## What it does
 
+- Finds real products and compares retailers through Channel3, right inside an MCP client such as Grok Bot.
+- Reads every price on the server, three times: at the quote, at payment, and at the owner's signature. An agent can never name a price, and a rise after the quote is denied.
+- Checks today's price against 90 days of Channel3 history, and shows it on the cheque.
+- Watches a price with Channel3 webhooks. When it drops, the agent files a normal purchase and the clerk decides.
+- Treats listings as untrusted. A product page that hides an instruction is blocked, and a product unrelated to the task is blocked.
 - Saves PayPal with Payment Method Tokens v3. No purchase is required to link.
 - Charges the saved wallet with Orders v2 using `vault_id`, with the intent id in `custom_id`. In the sandbox, payments go to the business account that owns the app, which stands in for merchants.
 - Captures, refunds, and verifies webhooks before they become receipts.
@@ -44,11 +49,11 @@ Agentic commerce needs a purse, not a prompt. The interesting PayPal surface is 
 
 ## What's next
 
-Partial refunds, a hosted Supabase project for the public demo, and submitting the plugin to the Grok marketplace once the production URL is stable.
+Real retailer orders. Channel3's checkout is still coming soon, so today PayPal sandbox settles with a stand-in merchant and the user finishes at the buy link. The clerk and the guard are already built for the day that endpoint ships. Also partial refunds, and submitting the plugin to the Grok marketplace.
 
 ## Built with
 
-Next.js, TypeScript, Node.js, SQLite, Postgres, Supabase, PayPal Payment Method Tokens v3, PayPal Orders v2, MCP, Zod, Vitest. Optional: Groq, Gemini, Vercel, Render.
+Next.js, TypeScript, Node.js, SQLite, Postgres, Supabase, PayPal Payment Method Tokens v3, PayPal Orders v2, Channel3 (search, product detail, lookup, similar, price history, product subscriptions, webhooks), MCP, Zod, Vitest. Optional: Groq, Gemini, Vercel, Render.
 
 ## Try it out
 

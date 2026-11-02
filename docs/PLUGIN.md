@@ -8,8 +8,13 @@ The URL in `.mcp.json` is the public demo, `https://agentpurse.vercel.app/mcp`. 
 
 | Tool | Effect |
 | --- | --- |
-| `search_merchants` | Read the catalog |
-| `get_quote` | Price a purchase. No money moves |
+| `search_products` | Search Channel3 offers. No money moves |
+| `get_product` | Read a product by id or pasted URL |
+| `check_price` | Low, typical, or high against 90 days of history |
+| `find_alternatives` | Similar products under a price |
+| `watch_price`, `list_watches`, `cancel_watch` | Wait for a target price. The clerk still decides |
+| `search_merchants` | Read the known merchants |
+| `get_quote` | Quote a catalog product or merchant. The server reads catalog prices |
 | `request_purchase` | Clerk allows, holds, or blocks |
 | `get_budget` | Remaining allowance |
 | `list_receipts` | PayPal receipts |
@@ -74,7 +79,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maaz` and `Accept: application/json, text/event-stream` returns the five tools. `tests/mcp.test.ts` covers the tool calls. `npm run mcp` is the stdio process for Claude Desktop.
+That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maaz` and `Accept: application/json, text/event-stream` returns the twelve tools. `tests/mcp.test.ts` covers the tool calls. `npm run mcp` is the stdio process for Claude Desktop.
 
 ## Example
 

@@ -14,3 +14,7 @@
 A live model cannot authorize a payment, clear a guard block, raise an allowance, or lift a panic freeze. The clerk in `src/policy/engine.ts` is ordinary TypeScript.
 
 No copyrighted images, logos, or audio are in the repo. The favicon and Open Graph card are original. PayPal is named as the payment rail, which the hackathon requires.
+
+## Channel3
+
+Channel3 is the product catalog behind shopping. AgentPurse uses `POST /v1/search`, `GET /v1/products/{id}`, `POST /v1/lookup`, `POST /v1/similar`, `GET /v0/price-tracking/history/{id}`, `POST` and `DELETE /v1/product-subscriptions`, and signed `offer.price.changed` webhooks. It returns data. The guard and the clerk decide.

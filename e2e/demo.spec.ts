@@ -19,6 +19,27 @@ test("judge demo: injection block, approval, and panic freeze", async ({ page })
   await page.getByRole("button", { name: "Approve and pay" }).click();
   await expect(page.getByText("Nothing is held.")).toBeVisible({ timeout: 20_000 });
 
+  await page.getByRole("button", { name: "Shop", exact: true }).click();
+  await page.getByLabel("What to look for").fill("USB-C charger");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const charger = page.locator("article").filter({ hasText: "VoltBay 65W USB-C charger" });
+  const offer = charger.locator("li").filter({ hasText: "voltbay.example" });
+  await offer.getByRole("button", { name: "Ask the clerk" }).click();
+  await expect(charger.getByRole("status")).toContainText("No retailer order was placed", { timeout: 20_000 });
+  await expect(page.locator("article").filter({ hasText: "Super value charger bundle" })).toContainText("Suspicious listing");
+
+  await page.getByLabel("What to look for").fill("noise-cancelling headphones");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const headphones = page.locator("article").filter({ hasText: "Northwind Aura" });
+  const seller = headphones.locator("li").filter({ hasText: "soundhaven.example" });
+  await seller.getByRole("button", { name: "Watch" }).click();
+  await headphones.getByLabel("Buy at or under, USD").fill("100");
+  await headphones.getByRole("button", { name: "Start watching" }).click();
+  await page.getByRole("button", { name: "Simulate price drop" }).click({ timeout: 20_000 });
+  await expect(page.getByText("Waiting for your signature")).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "Approve and pay" }).click();
+  await expect(page.getByText("Nothing is held.")).toBeVisible({ timeout: 20_000 });
+
   await page.getByRole("button", { name: "Controls", exact: true }).click();
   await page.getByRole("button", { name: "Panic freeze" }).click();
   await expect(page.getByText("No agent can pay.")).toBeVisible({ timeout: 20_000 });

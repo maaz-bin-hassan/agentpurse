@@ -7,6 +7,7 @@ import {
   listIntents,
   listNotifications,
   listReceipts,
+  listWatches,
   netSpentCents,
 } from "@/src/db/repository";
 import type { Sql } from "@/src/db/sql";
@@ -31,6 +32,7 @@ export async function loadHousehold(sql: Sql, ownerId: string) {
     captured: intents.filter((intent) => intent.status === "captured"),
     intents,
     receipts,
+    watches: await listWatches(sql, ownerId),
     notifications: await listNotifications(sql, ownerId),
     latest: audit[0] ?? null,
     allowanceLabel: (cents: number) => formatMoney(cents),

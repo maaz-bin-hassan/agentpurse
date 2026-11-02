@@ -99,6 +99,19 @@ Anyone with the link can use this demo, because it is sandbox money. A visitor c
 
 Real live mode (`PAYPAL_MODE=live` without the sandbox demo) has no dashboard sign-in yet, so do not use it.
 
+## Channel3
+
+Mock data is the default, and its shops are fictional `.example` domains. To use the real catalog:
+
+1. Create a key at https://trychannel3.com. The free tier is 1,000 credits a month.
+2. Set `CHANNEL3_MODE=live` and `CHANNEL3_API_KEY` in the host's env.
+3. In the Channel3 dashboard, add the webhook endpoint `https://agentpurse.vercel.app/api/channel3/webhooks`.
+4. Copy its `whsec_` secret to `CHANNEL3_WEBHOOK_SECRET`, then redeploy.
+
+`GET /api/health` must show `"channel3Mode": "live"` and `"channel3Configured": true`. Click **Reset demo** once after this deploy, because Handy gained the `shopping` category.
+
+With live data, **Simulate price drop** goes away. Use **Check now**, or wait for a real webhook.
+
 ## Render (free tier)
 
 `render.yaml` starts `npm run start` after `npm run build`. Set the same environment variables in the Render dashboard. The free web service sleeps when idle; the first request after sleep is slow, and PayPal webhook retries cover that.

@@ -47,6 +47,8 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       await tx.exec("DELETE FROM intents WHERE owner_id = ?", [DEMO_OWNER_ID]);
       await tx.exec("DELETE FROM audit_events WHERE owner_id = ?", [DEMO_OWNER_ID]);
       await tx.exec("DELETE FROM notifications WHERE owner_id = ?", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM price_watches WHERE owner_id = ?", [DEMO_OWNER_ID]);
+      await tx.exec("DELETE FROM mock_catalog_prices");
       await tx.exec("DELETE FROM mock_payment_tokens WHERE id = ?", [DEMO_VAULT_ID]);
       await tx.exec("DELETE FROM owners WHERE id = ?", [DEMO_OWNER_ID]);
     }
@@ -92,7 +94,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       ["agent_grocer", "Grocer", "claude", "Buys food for the house.", DEMO_KEYS.agent_grocer, 8000, "groceries"],
       ["agent_wayfinder", "Wayfinder", "grok", "Books trains, flights, and hotels.", DEMO_KEYS.agent_wayfinder, 40000, "travel"],
       ["agent_stack", "Stack", "chatgpt", "Pays for software the household uses.", DEMO_KEYS.agent_stack, 4000, "software"],
-      ["agent_handy", "Handy", "mcp", "Replaces cables, chargers, and small gear.", DEMO_KEYS.agent_handy, 10000, "electronics"],
+      ["agent_handy", "Handy", "mcp", "Shops the catalog for gear and household items.", DEMO_KEYS.agent_handy, 20000, "electronics"],
     ] as const;
     for (const [id, name, provider, description, apiKey, allowance, category] of agents) {
       if (await has("SELECT id FROM agents WHERE id = ?", id)) continue;
@@ -107,7 +109,7 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
           apiKeyPrefix: apiKey.slice(0, 12),
           allowanceCents: allowance,
           status: "active",
-          allowedCategories: [category],
+          allowedCategories: category === "electronics" ? ["electronics", "shopping"] : [category],
           perTxnCapCents: 15000,
           dailyCapCents: 30000,
           approvalThresholdCents: 5000,
@@ -127,6 +129,8 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       ["merch_skyair", "SkyAir", "travel", true, false],
       ["merch_unknown_gadgets", "Unknown Gadgets", "electronics", false, false],
       ["merch_lucky_chips", "Lucky Chips", "electronics", false, true],
+      ["merch_voltbay", "voltbay.example", "electronics", true, false],
+      ["merch_greengrocer_web", "greengrocer.example", "groceries", true, false],
     ] as const;
     for (const [id, name, category, trusted, blocked] of merchants) {
       if (preserve && (await has("SELECT id FROM merchants WHERE lower(name) = lower(?)", name))) continue;

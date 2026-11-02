@@ -13,6 +13,8 @@ export function HoldActions({
   amount,
   agentId,
   agentName,
+  imageUrl,
+  buyUrl,
   onApproved,
 }: {
   spendId: string;
@@ -21,6 +23,8 @@ export function HoldActions({
   amount: string;
   agentId: string;
   agentName: string;
+  imageUrl?: string | null;
+  buyUrl?: string | null;
   onApproved?: () => void;
 }) {
   const router = useRouter();
@@ -66,7 +70,7 @@ export function HoldActions({
       animate={leaving ? { x: leaving === "right" ? 280 : -280, opacity: 0 } : { x: 0, opacity: 1 }}
       transition={{ duration: reduce ? 0 : 0.35 }}
     >
-      <Cheque number={spendId.slice(-6)} payee={title} amount={amount} memo={explanation} agentId={agentId} agentName={agentName}>
+      <Cheque number={spendId.slice(-6)} payee={title} amount={amount} memo={explanation} agentId={agentId} agentName={agentName} imageUrl={imageUrl} buyUrl={buyUrl}>
         <div className="mt-4 border-t border-dashed border-line pt-3">
           <label htmlFor={noteId}>Note for the ledger</label>
           <input id={noteId} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional" />

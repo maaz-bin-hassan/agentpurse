@@ -18,6 +18,8 @@ import {
 } from "@/src/db/repository";
 import type { Sql } from "@/src/db/sql";
 import { requestPurchase } from "@/src/server/actions";
+import { checkPrice, createCatalogQuote, findAlternatives, payCatalogQuote, productDetail, searchCatalog } from "@/src/server/shop";
+import { cancelWatch, createWatch, householdWatches } from "@/src/server/watches";
 
 export interface McpActor {
   ownerId: string;
@@ -40,17 +42,49 @@ export const MCP_TOOLS = [
     inputSchema: { type: "object", properties: { query: { type: "string" } }, additionalProperties: false },
   },
   {
+    name: "search_products",
+    description: "Search real product offers through Channel3. Prices are cents. Does not move money.",
+    inputSchema: {
+      type: "object",
+      properties: { query: { type: "string" }, maxPriceCents: { type: "integer" } },
+      required: ["query"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_product",
+    description: "Read one product and its retailer offers, by product id or pasted product URL. Does not move money.",
+    inputSchema: { type: "object", properties: { productId: { type: "string" }, url: { type: "string" } }, additionalProperties: false },
+  },
+  {
+    name: "check_price",
+    description: "Compare today's price with 90 days of history: low, typical, or high. Does not move money.",
+    inputSchema: { type: "object", properties: { productId: { type: "string" } }, required: ["productId"], additionalProperties: false },
+  },
+  {
+    name: "find_alternatives",
+    description: "Find similar products under a price, for when the clerk says a choice is over budget. Does not move money.",
+    inputSchema: {
+      type: "object",
+      properties: { productId: { type: "string" }, maxPriceCents: { type: "integer" } },
+      required: ["productId"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "get_quote",
-    description: "Quote a purchase. Does not move money.",
+    description: "Quote a purchase. For a catalog product send productId and domain: the server reads the price, so do not send one. For a known merchant send merchant, amountCents, and description. Does not move money.",
     inputSchema: {
       type: "object",
       properties: {
+        productId: { type: "string" },
+        domain: { type: "string" },
         merchant: { type: "string" },
         amountCents: { type: "integer" },
         description: { type: "string" },
         originalTask: { type: "string" },
       },
-      required: ["merchant", "amountCents", "description", "originalTask"],
+      required: ["originalTask"],
     },
   },
   {
@@ -68,6 +102,26 @@ export const MCP_TOOLS = [
     },
   },
   {
+    name: "watch_price",
+    description: "Wait for a product to reach a target price, then file a normal purchase. The clerk still decides.",
+    inputSchema: {
+      type: "object",
+      properties: { productId: { type: "string" }, domain: { type: "string" }, targetCents: { type: "integer" }, originalTask: { type: "string" } },
+      required: ["productId", "domain", "targetCents", "originalTask"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list_watches",
+    description: "List price watches and how they ended.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "cancel_watch",
+    description: "Stop a price watch.",
+    inputSchema: { type: "object", properties: { watchId: { type: "string" } }, required: ["watchId"], additionalProperties: false },
+  },
+  {
     name: "get_budget",
     description: "Read remaining allowances. Does not move money.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
@@ -81,6 +135,15 @@ export const MCP_TOOLS = [
 
 function textResult(value: unknown) {
   return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] };
+}
+
+function shopResult(body: { ok: boolean; error?: string }) {
+  if (body.ok) return textResult(body);
+  return { isError: true, content: [{ type: "text", text: body.error ?? "That did not work." }] };
+}
+
+function cents(value: unknown): number | undefined {
+  return Number.isInteger(value) && Number(value) > 0 ? Number(value) : undefined;
 }
 
 async function budget(sql: Sql, actor: McpActor) {
@@ -108,12 +171,33 @@ export async function callTool(sql: Sql, actor: McpActor, name: string, args: Re
     const merchants = query ? await searchMerchants(sql, query) : await listMerchants(sql);
     return textResult(merchants.map((merchant) => ({ name: merchant.name, category: merchant.category, trusted: merchant.trusted, blocked: merchant.blocked })));
   }
+  if (name === "search_products") {
+    return shopResult((await searchCatalog(sql, actor.ownerId, { query: String(args.query ?? ""), maxPriceCents: cents(args.maxPriceCents) })).body);
+  }
+  if (name === "get_product") {
+    const input = { productId: typeof args.productId === "string" ? args.productId : undefined, url: typeof args.url === "string" ? args.url : undefined };
+    return shopResult((await productDetail(sql, actor.ownerId, input)).body);
+  }
+  if (name === "check_price") return shopResult((await checkPrice(sql, String(args.productId ?? ""))).body);
+  if (name === "find_alternatives") {
+    return shopResult((await findAlternatives(sql, actor.ownerId, { productId: String(args.productId ?? ""), maxPriceCents: cents(args.maxPriceCents) })).body);
+  }
+  if (name === "watch_price") {
+    const input = { ownerId: actor.ownerId, agentId: actor.agentId, productId: String(args.productId ?? ""), domain: String(args.domain ?? ""), targetCents: Number(args.targetCents), originalTask: String(args.originalTask ?? "") };
+    return shopResult((await createWatch(sql, input)).body);
+  }
+  if (name === "list_watches") return textResult(await householdWatches(sql, actor.ownerId, actor.agentId));
+  if (name === "cancel_watch") return shopResult((await cancelWatch(sql, actor.ownerId, String(args.watchId ?? ""), actor.agentId)).body);
   if (name === "get_budget") return textResult(await budget(sql, actor));
   if (name === "list_receipts") {
     const receipts = await listReceipts(sql, actor.ownerId, actor.agentId ?? undefined);
     return textResult(receipts);
   }
   if (name === "get_quote") {
+    if (typeof args.productId === "string") {
+      const input = { ownerId: actor.ownerId, agentId: actor.agentId, productId: args.productId, domain: String(args.domain ?? ""), originalTask: String(args.originalTask ?? "") };
+      return shopResult((await createCatalogQuote(sql, input)).body);
+    }
     const merchantName = String(args.merchant ?? "");
     const merchant = await findMerchantByName(sql, merchantName);
     if (!merchant) return { isError: true, content: [{ type: "text", text: `Unknown merchant ${merchantName}` }] };
@@ -162,6 +246,7 @@ export async function callTool(sql: Sql, actor: McpActor, name: string, args: Re
       }
       if (actor.agentId && actor.agentId !== quoteAgentId) return { isError: true, content: [{ type: "text", text: "This quote belongs to another agent." }] };
       if (String(quote.expires_at) < new Date().toISOString()) return { isError: true, content: [{ type: "text", text: "Quote expired." }] };
+      if (quote.product_id) return shopResult((await payCatalogQuote(sql, quote)).body);
       if (!(await claimQuote(sql, args.quoteId, new Date().toISOString()))) return { isError: true, content: [{ type: "text", text: "This quote was already used. Ask for a new quote." }] };
       agentId = quoteAgentId;
       text =`${quote.description} from ${quote.merchant_name} for $${(Number(quote.amount_cents) / 100).toFixed(2)}`;

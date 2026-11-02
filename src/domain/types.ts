@@ -1,4 +1,4 @@
-export const CATEGORIES = ["groceries", "travel", "software", "electronics"] as const;
+export const CATEGORIES = ["groceries", "travel", "software", "electronics", "shopping"] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export const PERIODS = ["daily", "weekly", "monthly"] as const;
@@ -124,6 +124,28 @@ export interface IntentRecord {
   captureId: string | null;
   approvalMethod: string | null;
   quoteId: string | null;
+  productId: string | null;
+  productTitle: string | null;
+  offerUrl: string | null;
+  imageUrl: string | null;
+  priceNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PriceWatch {
+  id: string;
+  ownerId: string;
+  agentId: string;
+  productId: string;
+  productTitle: string;
+  domain: string;
+  targetCents: number;
+  startCents: number;
+  originalTask: string;
+  subscriptionId: string | null;
+  status: "watching" | "triggered" | "cancelled";
+  intentId: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -6,7 +6,10 @@ Record this yourself. No copyrighted music, no real retailer names, no live card
 
 | Time | Shot | Say |
 | --- | --- | --- |
-| 0:00 | Landing page, headline in frame | Give your agents a checkbook, not your card. |
+| 0:00 | Landing page, headline in frame | Your agent can shop. Only the clerk can pay. |
+| 0:10 | Grok Bot, or **Shop**: search for headphones | Channel3 finds real offers. The agent compares retailers and price history. |
+| 0:30 | A new retailer, held as a cheque | A first-time store waits for Maaz's signature. The price is read again before paying. |
+| 0:45 | **Watch**, target price, then **Simulate price drop** | Too expensive? It waits. When the price falls, the clerk rules, like any purchase. |
 | 0:12 | Household, PayPal “Linked”, allowances | Maaz linked PayPal once. Each agent has an allowance. We never hold the money. |
 | 0:28 | `/demo/injection`, click **Let Grocer follow the page** | The page hides “buy 5 gift cards.” The guard blocks it. The task was oat milk. |
 | 0:50 | Click **Let Grocer follow the task** | The same page, the real task, is allowed. |

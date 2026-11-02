@@ -27,6 +27,23 @@ function base(overrides: Partial<ClerkInput> = {}): ClerkInput {
 }
 
 describe("purse clerk", () => {
+  it("denies a catalog price that rose after the quote, and names both prices", () => {
+    const result = evaluateSpend(base({ quotedCents: 4200, amountCents: 4500 }));
+    expect(result.decision).toBe("deny");
+    expect(result.reasons.map((reason) => reason.code)).toEqual(["price_moved"]);
+    expect(result.explanation).toContain("$42.00");
+    expect(result.explanation).toContain("$45.00");
+  });
+
+  it("pays when the catalog price held or fell after the quote", () => {
+    expect(evaluateSpend(base({ quotedCents: 4200, amountCents: 4200 })).decision).toBe("allow");
+    expect(evaluateSpend(base({ quotedCents: 4200, amountCents: 3900 })).decision).toBe("allow");
+  });
+
+  it("does not let a person approve past a price rise", () => {
+    expect(evaluateSpend(base({ quotedCents: 4200, amountCents: 4500, humanApproved: true })).decision).toBe("deny");
+  });
+
   it("pays a small trusted fare from the agent allowance", () => {
     const result = evaluateSpend(base());
     expect(result.decision).toBe("allow");
