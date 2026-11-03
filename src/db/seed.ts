@@ -3,6 +3,7 @@ import { DEMO_KEYS } from "@/src/domain/demo-keys";
 import { DEMO_PAYEE } from "@/src/domain/payee";
 import { evaluateSpend } from "@/src/policy/engine";
 import {
+  hashApiKey,
   insertAgent,
   insertAudit,
   insertIntent,
@@ -97,7 +98,11 @@ export async function seedDemo(sql: Sql, options?: { now?: Date; ifMissing?: boo
       ["agent_handy", "Handy", "mcp", "Shops the catalog for gear and household items.", DEMO_KEYS.agent_handy, 20000, "electronics"],
     ] as const;
     for (const [id, name, provider, description, apiKey, allowance, category] of agents) {
-      if (await has("SELECT id FROM agents WHERE id = ?", id)) continue;
+      if (await has("SELECT id FROM agents WHERE id = ?", id)) {
+        // A kept agent still answers to the current demo key, even after a key rename.
+        await tx.exec("UPDATE agents SET api_key_hash = ?, api_key_prefix = ? WHERE id = ?", [hashApiKey(apiKey), apiKey.slice(0, 12), id]);
+        continue;
+      }
       await insertAgent(
         tx,
         {
