@@ -1,6 +1,6 @@
 export type PaypalMode = "mock" | "live";
 export type AiMode = "mock" | "live";
-export type AiProvider = "groq" | "gemini";
+export type AiProvider = "groq" | "gemini" | "deepseek";
 export type Channel3Mode = "mock" | "live";
 
 export type AppEnv = Record<string, string | undefined>;
@@ -18,7 +18,18 @@ export function channel3Mode(env: AppEnv = process.env): Channel3Mode {
 }
 
 export function aiProvider(env: AppEnv = process.env): AiProvider {
-  return env.AI_PROVIDER?.toLowerCase() === "gemini" ? "gemini" : "groq";
+  const provider = env.AI_PROVIDER?.toLowerCase();
+  return provider === "gemini" || provider === "deepseek" ? provider : "groq";
+}
+
+/** Groq and DeepSeek speak the same OpenAI-style chat API. */
+export const CHAT_PROVIDERS = {
+  groq: { url: "https://api.groq.com/openai/v1/chat/completions", keyName: "GROQ_API_KEY", model: "llama-3.3-70b-versatile", label: "Groq" },
+  deepseek: { url: "https://api.deepseek.com/chat/completions", keyName: "DEEPSEEK_API_KEY", model: "deepseek-chat", label: "DeepSeek" },
+} as const;
+
+export function aiKey(env: AppEnv = process.env, provider: AiProvider = aiProvider(env)): string | undefined {
+  return provider === "gemini" ? env.GEMINI_API_KEY : env[CHAT_PROVIDERS[provider].keyName];
 }
 
 /** A public demo on the PayPal sandbox. It can never point at PayPal's production host. */
@@ -46,10 +57,11 @@ export function healthPayload(env: AppEnv = process.env) {
     paypalMode: paypal,
     sandboxDemo: sandboxDemo(env),
     aiMode: ai,
+    aiProvider: aiProvider(env),
     channel3Mode: channel3Mode(env),
     channel3Configured: Boolean(env.CHANNEL3_API_KEY),
     credentialsRequired: false,
     livePaypalConfigured: Boolean(env.PAYPAL_CLIENT_ID && env.PAYPAL_CLIENT_SECRET),
-    liveAiConfigured: Boolean(env.GROQ_API_KEY || env.GEMINI_API_KEY),
+    liveAiConfigured: Boolean(aiKey(env)),
   };
 }

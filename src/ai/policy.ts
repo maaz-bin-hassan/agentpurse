@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { aiMode, aiProvider, type AppEnv } from "@/src/config";
+import { aiKey, aiMode, aiProvider, CHAT_PROVIDERS, type AiProvider, type AppEnv } from "@/src/config";
 import { decimalToCents } from "@/src/domain/money";
 import { CATEGORIES, isCategory, type Category } from "@/src/domain/types";
 
@@ -51,11 +51,11 @@ export function parsePolicyJson(payload: unknown): StructuredPolicy {
 export async function compilePolicy(
   text: string,
   options?: { env?: AppEnv; fetchImpl?: typeof fetch },
-): Promise<{ policy: StructuredPolicy; source: "mock" | "groq" | "gemini"; note?: string }> {
+): Promise<{ policy: StructuredPolicy; source: "mock" | AiProvider; note?: string }> {
   const env = options?.env ?? process.env;
   if (aiMode(env) !== "live") return { policy: compileLocally(text), source: "mock" };
   const provider = aiProvider(env);
-  const key = provider === "gemini" ? env.GEMINI_API_KEY : env.GROQ_API_KEY;
+  const key = aiKey(env, provider);
   if (!key) return { policy: compileLocally(text), source: "mock", note: "No model key. Used the local compiler." };
   try {
     const fetchImpl = options?.fetchImpl ?? fetch;
@@ -66,10 +66,10 @@ export async function compilePolicy(
             `https://generativelanguage.googleapis.com/v1beta/models/${env.AI_MODEL || "gemini-2.5-flash"}:generateContent?key=${encodeURIComponent(key)}`,
             { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
           )
-        : await fetchImpl("https://api.groq.com/openai/v1/chat/completions", {
+        : await fetchImpl(CHAT_PROVIDERS[provider].url, {
             method: "POST",
             headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
-            body: JSON.stringify({ model: env.AI_MODEL || "llama-3.3-70b-versatile", temperature: 0, messages: [{ role: "user", content: prompt }] }),
+            body: JSON.stringify({ model: env.AI_MODEL || CHAT_PROVIDERS[provider].model, temperature: 0, messages: [{ role: "user", content: prompt }] }),
           });
     if (!response.ok) return { policy: compileLocally(text), source: "mock", note: `Model request failed (${response.status}).` };
     const json = (await response.json()) as { choices?: Array<{ message?: { content?: string } }>; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };

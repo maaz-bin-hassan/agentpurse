@@ -98,6 +98,35 @@ describe("live model validation", () => {
     expect(String((init.headers as Record<string, string>).Authorization)).toBe("Bearer test-key");
   });
 
+  it("sends the sentence to DeepSeek and still rejects an amount the sentence did not say", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({ merchantName: "Green Grocer", amountCents: 99900, category: "groceries", purpose: "oat milk" }),
+              },
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    });
+    const intent = await parseSpendIntent("Buy oat milk from Green Grocer for $2.55", {
+      merchants,
+      env: { AI_MODE: "live", AI_PROVIDER: "deepseek", DEEPSEEK_API_KEY: "test-key" },
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    expect(intent.source).toBe("deepseek");
+    expect(intent.amountCents).toBeNull();
+    expect(intent.merchantName).toBe("Green Grocer");
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://api.deepseek.com/chat/completions");
+    expect(JSON.parse(String(init.body)).model).toBe("deepseek-chat");
+    expect(String((init.headers as Record<string, string>).Authorization)).toBe("Bearer test-key");
+  });
+
   it("falls back to the local parser when live mode has no key", async () => {
     const intent = await parseSpendIntent("Pay CloudApps $12 for the monthly team plan", {
       merchants,

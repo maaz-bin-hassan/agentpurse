@@ -1,4 +1,4 @@
-import { aiMode, aiProvider, type AppEnv } from "@/src/config";
+import { aiKey, aiMode, aiProvider, CHAT_PROVIDERS, type AiProvider, type AppEnv } from "@/src/config";
 import { decimalToCents } from "@/src/domain/money";
 import { isCategory, type Category, type Merchant } from "@/src/domain/types";
 
@@ -9,7 +9,7 @@ export interface ParsedIntent {
   category: Category | null;
   purpose: string;
   confidence: number;
-  source: "mock" | "groq" | "gemini";
+  source: "mock" | AiProvider;
   complete: boolean;
   note?: string;
 }
@@ -84,7 +84,7 @@ export function interpretModelPayload(
   text: string,
   payload: unknown,
   merchants: Merchant[],
-  source: "groq" | "gemini",
+  source: AiProvider,
 ): ParsedIntent {
   const record = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
   const localAmount = extractAmountCents(text);
@@ -162,10 +162,11 @@ async function completeLive(
     return interpretModelPayload(text, JSON.parse(stripFence(raw)), merchants, "gemini");
   }
 
-  const key = env.GROQ_API_KEY;
-  if (!key) return { ...parseLocally(text, merchants), note: "AI_MODE=live but GROQ_API_KEY is unset. Used the local parser." };
-  const model = env.AI_MODEL || "llama-3.3-70b-versatile";
-  const response = await fetchImpl("https://api.groq.com/openai/v1/chat/completions", {
+  const chat = CHAT_PROVIDERS[provider];
+  const key = aiKey(env, provider);
+  if (!key) return { ...parseLocally(text, merchants), note: `AI_MODE=live but ${chat.keyName} is unset. Used the local parser.` };
+  const model = env.AI_MODEL || chat.model;
+  const response = await fetchImpl(chat.url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
@@ -177,10 +178,10 @@ async function completeLive(
       messages: [{ role: "user", content: prompt }],
     }),
   });
-  if (!response.ok) return { ...parseLocally(text, merchants), note: `Groq request failed (${response.status}). Used the local parser.` };
+  if (!response.ok) return { ...parseLocally(text, merchants), note: `${chat.label} request failed (${response.status}). Used the local parser.` };
   const json = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
   const raw = json.choices?.[0]?.message?.content ?? "";
-  return interpretModelPayload(text, JSON.parse(stripFence(raw)), merchants, "groq");
+  return interpretModelPayload(text, JSON.parse(stripFence(raw)), merchants, provider);
 }
 
 export async function parseSpendIntent(
