@@ -1,10 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bot, Inbox, LayoutDashboard, Power, Receipt, Shield, ShoppingBag } from "lucide-react";
+import { Bot, Inbox, LayoutDashboard, ListChecks, Power, Receipt, Shield, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ConnectCard } from "@/components/account/connect-card";
+import { NewAgent } from "@/components/account/new-agent";
+import { SetupChecklist } from "@/components/account/setup-checklist";
 import { AgentFace } from "@/components/agents/faces";
 import { AgentPause } from "@/components/AgentPause";
 import { AllowanceForm } from "@/components/AllowanceForm";
@@ -19,6 +22,7 @@ import { SpendForm } from "@/components/SpendForm";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DEMO_KEYS } from "@/src/domain/demo-keys";
 import { formatMoney } from "@/src/domain/money";
+import type { AgentTemplate } from "@/src/domain/templates";
 
 type Agent = {
   id: string;
@@ -80,9 +84,12 @@ export type DashboardData = {
   receipts: Receipt[];
   notifications: Array<{ id: string; title: string; body: string }>;
   latestDetail: string | null;
+  /** Present for a signed-in account. Absent on the judges' demo purse. */
+  account?: { email: string; mcpUrl: string; templates: AgentTemplate[] } | null;
 };
 
 const NAV = [
+  { id: "Setup", icon: ListChecks },
   { id: "Overview", icon: LayoutDashboard },
   { id: "Shop", icon: ShoppingBag },
   { id: "Agents", icon: Bot },
@@ -92,6 +99,14 @@ const NAV = [
   { id: "Controls", icon: Power },
 ] as const;
 type Nav = (typeof NAV)[number]["id"];
+
+const CATEGORY_SAMPLES: Record<string, string> = {
+  groceries: "Buy oat milk and eggs from Green Grocer for $18.40",
+  travel: "Buy Metro Rail tickets for $42",
+  software: "Pay CloudApps $9 for extra storage",
+  electronics: "Buy a $30 USB-C charger from voltbay.example",
+  shopping: "Buy $25 of paper towels and dish soap",
+};
 
 const SAMPLES: Record<string, string[]> = {
   agent_grocer: ["Buy oat milk and eggs from Green Grocer for $18.40", "Buy a $40 charger from Unknown Gadgets"],
@@ -113,7 +128,10 @@ const STAMPS: Record<string, { tone: string; label: string }> = {
 
 export function Dashboard({ data }: { data: DashboardData }) {
   const reduce = useReducedMotion();
-  const [section, setSection] = useState<Nav>("Overview");
+  const account = data.account ?? null;
+  const needsSetup = Boolean(account) && (data.agents.length === 0 || data.vault?.status !== "vaulted");
+  const [section, setSection] = useState<Nav>(needsSetup ? "Setup" : "Overview");
+  const nav = NAV.filter((item) => item.id !== "Setup" || account);
   const [receiptKind, setReceiptKind] = useState<"all" | "capture" | "refund">("all");
   const [receiptAgent, setReceiptAgent] = useState("all");
   const [paid, setPaid] = useState(false);
@@ -160,7 +178,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto [scrollbar-width:none] md:flex-col" aria-label="Dashboard">
-          {NAV.map((item) => {
+          {nav.map((item) => {
             const Icon = item.icon;
             const active = section === item.id;
             return (
@@ -190,8 +208,16 @@ export function Dashboard({ data }: { data: DashboardData }) {
         <div className="mx-auto max-w-6xl">
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="eyebrow">Your household</p>
-              <h1 className="mt-1 text-4xl">{owner.name}&apos;s household</h1>
+              <p className="eyebrow">{account ? account.email : "Your household"}</p>
+              <h1 className="mt-1 text-4xl">{owner.name}&apos;s {account ? "purse" : "household"}</h1>
+              {account ? (
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                  <Link href="/tutorial">Tutorial</Link>
+                  <form action="/auth/signout" method="post">
+                    <button type="submit" className="cursor-pointer underline underline-offset-[3px]">Sign out</button>
+                  </form>
+                </div>
+              ) : null}
             </div>
             <div className="max-w-sm text-sm text-muted sm:text-right">
               <p className={`stamp ${paypalMode === "live" ? "allow" : "quiet"}`}>{paypalMode === "live" ? "PayPal sandbox" : "Mock PayPal"}</p>
@@ -249,6 +275,17 @@ export function Dashboard({ data }: { data: DashboardData }) {
               exit={reduce ? undefined : { opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
+              {section === "Setup" && account ? (
+                <SetupChecklist
+                  ownerId={owner.id}
+                  paypalMode={paypalMode}
+                  linked={vault?.status === "vaulted"}
+                  agentCount={agents.length}
+                  requestCount={intents.length}
+                  onGoAgents={() => setSection("Agents")}
+                />
+              ) : null}
+
               {section === "Overview" ? (
                 <div className="space-y-6">
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -273,7 +310,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
                             </div>
                           </li>
                         ))}
-                        {intents.length === 0 ? <li className="px-5 py-4 text-sm text-muted">No requests yet. Ask from the Agents tab.</li> : null}
+                        {intents.length === 0 ? <li className="px-5 py-4 text-sm text-muted">{agents.length === 0 ? "No agents yet. Create one from the Agents tab." : "No requests yet. Ask from the Agents tab."}</li> : null}
                       </ul>
                     </section>
                     <div className="space-y-4">
@@ -298,6 +335,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
 
               {section === "Agents" ? (
                 <div className="space-y-4">
+                  {account ? <NewAgent templates={account.templates} mcpUrl={account.mcpUrl} /> : null}
                   {agents.map((agent) => (
                     <section key={agent.id} className="panel grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
                       <div>
@@ -309,12 +347,23 @@ export function Dashboard({ data }: { data: DashboardData }) {
                           </div>
                         </div>
                         <div className="mt-4">
-                          <SpendForm agentId={agent.id} agentName={agent.name} samples={SAMPLES[agent.id] ?? ["Pay a merchant $10"]} />
+                          <SpendForm agentId={agent.id} agentName={agent.name} samples={SAMPLES[agent.id] ?? agent.allowedCategories.map((category) => CATEGORY_SAMPLES[category]).filter(Boolean)} />
                         </div>
                       </div>
                       <div className="border-line lg:border-l lg:pl-5">
-                        <p className="eyebrow">Demo key</p>
-                        <p className="money mt-1 text-xs break-all">{DEMO_KEYS[agent.id as keyof typeof DEMO_KEYS] ?? agent.apiKeyPrefix}</p>
+                        {account ? (
+                          <details>
+                            <summary className="cursor-pointer text-sm font-medium">Connect to your AI <span className="money text-xs text-muted">· key {agent.apiKeyPrefix}…</span></summary>
+                            <div className="mt-3">
+                              <ConnectCard agentId={agent.id} agentName={agent.name} mcpUrl={account.mcpUrl} canRotate />
+                            </div>
+                          </details>
+                        ) : (
+                          <>
+                            <p className="eyebrow">Demo key</p>
+                            <p className="money mt-1 text-xs break-all">{DEMO_KEYS[agent.id as keyof typeof DEMO_KEYS] ?? agent.apiKeyPrefix}</p>
+                          </>
+                        )}
                         <div className="mt-4">
                           <AllowanceForm agentId={agent.id} agentName={agent.name} />
                         </div>
@@ -433,7 +482,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
                   <h2 className="text-xl">Kill switch</h2>
                   <p className="mt-1 max-w-xl text-sm text-muted">Panic stops every payment. Revoke deletes the PayPal vault token. To pause one agent, use the Agents tab.</p>
                   <div className="mt-5">
-                    <HouseholdControls ownerId={owner.id} panic={owner.panicFrozen} vaultStatus={vault?.status ?? "missing"} />
+                    <HouseholdControls ownerId={owner.id} panic={owner.panicFrozen} vaultStatus={vault?.status ?? "missing"} demo={!account} />
                   </div>
                 </section>
               ) : null}

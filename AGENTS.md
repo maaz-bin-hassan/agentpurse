@@ -16,6 +16,8 @@ This file is the working agreement for anyone (human or agent) changing the repo
 - Revoke deletes the PayPal payment token. Do not only flip a local flag.
 - Do not commit `.env`, database files, or secrets. `.env.example` stays placeholder-only.
 - New policy rules need a failing test first, then the implementation.
+- The judges' demo never changes: `/purses/purse_maaz`, `/demo/injection`, and the `agpk_*_demo_maaz` keys keep working with no account. Only that purse is public; any other purse needs its owner's Supabase session.
+- Accounts verify the Supabase session with `getUser()` on the server. Never trust a cookie's contents alone.
 - Channel3 is optional. `CHANNEL3_MODE=mock` is the default, and mock data needs no key and no network.
 - An agent never supplies a catalog price. The server reads it from Channel3, and `priceToCents` is the only float-to-cents conversion.
 - Listing text is untrusted. It goes through the guard and never reaches a decision as an instruction.
@@ -73,6 +75,11 @@ Keep this list honest when a phase lands.
 - [x] Phase 14 — Grok plugin, deploy docs, submission copy
 - [x] Phase 15 — real PayPal sandbox run: link, charge, hold, refund, and MCP purchase. Webhook delivery still to confirm
 - [ ] Phase 16 — Channel3 shopping and price watches: built and tested on mock data, waiting on a live key run
+- [x] Phase 17 — Supabase email and password accounts. `/purses/purse_maaz` stays the public judges' demo; account purses live at `/dashboard`
+- [x] Phase 18 — setup checklist, `/tutorial`, and copy-paste connect prompts per AI client
+- [x] Phase 19 — eight agent templates (`src/domain/templates.ts`), editable before save, keys shown once and rotatable
+- [ ] Phase 20 — OAuth authorize page for ChatGPT and Claude connectors
+- [ ] Phase 21 — production PayPal Vault and paying each merchant directly
 
 ## Changing a rule
 

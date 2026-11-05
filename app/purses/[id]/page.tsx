@@ -1,17 +1,13 @@
-import { notFound } from "next/navigation";
-import { Dashboard, type DashboardData } from "@/components/dashboard/dashboard";
-import { channel3Mode, paypalMode } from "@/src/config";
+import { notFound, redirect } from "next/navigation";
+import { Dashboard } from "@/components/dashboard/dashboard";
 import { getDb } from "@/src/db/connection";
+import { DEMO_OWNER_ID } from "@/src/db/seed";
+import { dashboardData } from "@/src/server/dashboard-data";
+import { currentAccount } from "@/src/server/supabase-next";
 import { loadHousehold } from "@/src/server/view";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const LINK_NOTICES: Record<string, string> = {
-  linked: "PayPal linked. No purchase was made.",
-  cancelled: "PayPal linking was cancelled. Nothing changed.",
-  failed: "PayPal did not finish linking. Try again from Controls.",
-};
 
 export default async function PursePage({
   params,
@@ -22,26 +18,13 @@ export default async function PursePage({
 }) {
   const { id } = await params;
   const { paypal } = await searchParams;
+  // Only the judges' demo purse is public. Account purses live at /dashboard behind sign-in.
+  if (id !== DEMO_OWNER_ID) {
+    const account = await currentAccount();
+    if (account?.ownerId === id) redirect(paypal ? `/dashboard?paypal=${encodeURIComponent(paypal)}` : "/dashboard");
+    notFound();
+  }
   const view = await loadHousehold(await getDb(), id);
   if (!view) notFound();
-  const data: DashboardData = {
-    owner: view.owner,
-    vault: view.vault ? { status: view.vault.status, paymentTokenId: view.vault.paymentTokenId, payerEmail: view.vault.payerEmail } : null,
-    paypalMode: paypalMode(),
-    mockCatalog: channel3Mode() === "mock",
-    watches: view.watches,
-    linkNotice: (paypal && LINK_NOTICES[paypal]) || null,
-    agents: view.agents,
-    holds: view.holds,
-    captured: view.captured,
-    intents: view.intents,
-    receipts: view.receipts,
-    notifications: view.notifications.map((note) => ({
-      id: String(note.id),
-      title: String(note.title),
-      body: String(note.body),
-    })),
-    latestDetail: view.latest?.detail ?? null,
-  };
-  return <Dashboard data={data} />;
+  return <Dashboard data={dashboardData(view, paypal)} />;
 }

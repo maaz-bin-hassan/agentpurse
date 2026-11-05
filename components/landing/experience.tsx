@@ -76,6 +76,8 @@ export function LandingExperience() {
               <a className="hidden no-underline hover:underline sm:inline" href="#try">Try it</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#how">How it works</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#pricing">Pricing</a>
+              <Link className="hidden no-underline hover:underline sm:inline" href="/tutorial">Tutorial</Link>
+              <Link className="no-underline hover:underline" href="/login">Sign in</Link>
               <ThemeToggle />
             </nav>
           </header>
@@ -92,6 +94,7 @@ export function LandingExperience() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link className="btn" href="/purses/purse_maaz">Open Maaz&apos;s household</Link>
                 <Link className="btn secondary" href="/demo/injection">Watch a page get caught</Link>
+                <Link className="btn secondary" href="/signup">Create your own purse</Link>
               </div>
             </div>
             <HeroFilm step={step} onStep={setStep} reduce={Boolean(reduce)} />

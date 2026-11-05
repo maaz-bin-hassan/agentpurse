@@ -32,6 +32,18 @@ export function aiKey(env: AppEnv = process.env, provider: AiProvider = aiProvid
   return provider === "gemini" ? env.GEMINI_API_KEY : env[CHAT_PROVIDERS[provider].keyName];
 }
 
+/** Supabase Auth for real accounts. Missing values leave the site in demo-only mode. */
+export function supabaseAuthConfig(env: AppEnv = process.env): { url: string; key: string } | null {
+  const url = env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  return url && key ? { url, key } : null;
+}
+
+/** The public origin, used for MCP URLs and email links. */
+export function publicBaseUrl(fallback: string, env: AppEnv = process.env): string {
+  return (env.PUBLIC_BASE_URL || fallback).replace(/\/$/, "");
+}
+
 /** A public demo on the PayPal sandbox. It can never point at PayPal's production host. */
 export function sandboxDemo(env: AppEnv = process.env): boolean {
   if (paypalMode(env) !== "live" || env.AGENTPURSE_SANDBOX_DEMO !== "1" || !env.DEMO_SESSION_SECRET) return false;

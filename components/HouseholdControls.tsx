@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { postJson } from "@/components/post-json";
 
-export function HouseholdControls({ ownerId, panic, vaultStatus }: { ownerId: string; panic: boolean; vaultStatus: string }) {
+export function HouseholdControls({ ownerId, panic, vaultStatus, demo = true }: { ownerId: string; panic: boolean; vaultStatus: string; demo?: boolean }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -36,9 +36,11 @@ export function HouseholdControls({ ownerId, panic, vaultStatus }: { ownerId: st
         <button className="btn secondary" type="button" disabled={pending || vaultStatus !== "vaulted"} onClick={() => void run(`/api/households/${ownerId}/revoke`)}>
           Revoke PayPal
         </button>
-        <button className="btn secondary" type="button" disabled={pending} onClick={() => void run("/api/demo/reset")}>
-          Reset demo
-        </button>
+        {demo ? (
+          <button className="btn secondary" type="button" disabled={pending} onClick={() => void run("/api/demo/reset")}>
+            Reset demo
+          </button>
+        ) : null}
         {vaultStatus !== "vaulted" ? (
           <button className="btn secondary" type="button" disabled={pending} onClick={() => void run(`/api/households/${ownerId}/vault`)}>
             Link PayPal
