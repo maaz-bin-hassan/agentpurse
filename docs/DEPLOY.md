@@ -31,6 +31,19 @@ The Agentpurse Supabase project is in West EU (`eu-west-1`), project ref `gceiiw
 2. Put the pooler URI in `DATABASE_URL` and run `npm run db:migrate`, then `npm run db:seed`. The SQL editor can run the same files in order if you prefer; `0001` is safe to run and `0002` only creates missing tables.
 3. Leave `schema_migrations` in place so a later `npm run db:migrate` does not try to treat an applied file as new work. Re-running the files by hand is still safe because every create is `IF NOT EXISTS`.
 
+## Accounts (Supabase Auth)
+
+Real users sign up with email and password. The app uses Supabase for auth only; data still goes through `DATABASE_URL`.
+
+1. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in Vercel (Production and Preview). The publishable key is safe in the browser.
+2. Supabase dashboard → Authentication → URL Configuration: Site URL `https://agentpurse.vercel.app`, and add `https://agentpurse.vercel.app/auth/callback` and `http://localhost:3000/auth/callback` to Redirect URLs. Add preview URLs with a wildcard if you test previews.
+3. Authentication → Providers → Email: keep Confirm email on. Set a custom SMTP sender before launch; the built-in one sends only a few emails an hour.
+4. Migration `0008_accounts.sql` adds `owners.auth_user_id`. It runs on boot like the others and does not touch the demo rows.
+
+5. Branded emails: Supabase lets you edit templates only after custom SMTP is set. Under Authentication → Emails → SMTP Settings, add a sender (Resend's free tier works: verify a domain, then host `smtp.resend.com`, port `465`, user `resend`, password your Resend API key, sender like `AgentPurse <hello@yourdomain>`). Then paste `supabase/templates/confirm-signup.html` into **Confirm sign up** (subject: "Confirm your AgentPurse email") and `supabase/templates/reset-password.html` into **Reset password** (subject: "Reset your AgentPurse password"). Both use `{{ .ConfirmationURL }}` and `{{ .Email }}`.
+
+Without those two variables the site stays demo-only and `/login` says accounts are off.
+
 ## One command
 
 From this directory, after `npm install`:

@@ -91,6 +91,27 @@ export async function insertOwner(sql: Sql, owner: Owner): Promise<void> {
   );
 }
 
+export async function ownerIdForAuthUser(sql: Sql, authUserId: string): Promise<string | undefined> {
+  const row = await sql.get("SELECT id FROM owners WHERE auth_user_id = ?", [authUserId]);
+  return row ? text(row, "id") : undefined;
+}
+
+export async function insertAccountOwner(sql: Sql, owner: Owner, authUserId: string): Promise<void> {
+  await sql.exec(
+    `INSERT INTO owners (id, name, email, panic_frozen, created_at, auth_user_id) VALUES (?, ?, ?, 0, ?, ?)`,
+    [owner.id, owner.name, owner.email, owner.createdAt, authUserId],
+  );
+}
+
+export async function isAccountOwner(sql: Sql, ownerId: string): Promise<boolean> {
+  const row = await sql.get("SELECT auth_user_id FROM owners WHERE id = ?", [ownerId]);
+  return Boolean(row && row.auth_user_id);
+}
+
+export async function rotateAgentKey(sql: Sql, agentId: string, apiKey: string): Promise<void> {
+  await sql.exec("UPDATE agents SET api_key_hash = ?, api_key_prefix = ? WHERE id = ?", [hashApiKey(apiKey), apiKey.slice(0, 12), agentId]);
+}
+
 export async function setPanic(sql: Sql, ownerId: string, frozen: boolean): Promise<void> {
   await sql.exec("UPDATE owners SET panic_frozen = ? WHERE id = ?", [frozen ? 1 : 0, ownerId]);
 }

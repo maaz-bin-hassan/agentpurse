@@ -3,6 +3,7 @@ import type { Sql } from "@/src/db/sql";
 import { actorFromBearer } from "@/src/mcp/protocol";
 import { DEMO_COOKIE, readDemoSession, signDemoSession } from "@/src/server/demo-session";
 import { fail } from "@/src/server/http";
+import { accountOwnerFromCookies, parseCookieHeader } from "@/src/server/session";
 
 export const DEMO_OWNER_ID = "purse_maaz";
 export { DEMO_COOKIE, signDemoSession };
@@ -35,14 +36,23 @@ export function resetRateLimits(): void {
   buckets.clear();
 }
 
-export async function actorFromRequest(request: Request, sql: Sql): Promise<{ ownerId: string; agentId: string | null } | null> {
+type Actor = { ownerId: string; agentId: string | null };
+
+/** Who this request may act as: an agent key alone, or a signed-in account plus the demo session. */
+export async function actorsFromRequest(request: Request, sql: Sql): Promise<Actor[]> {
   const bearer = await actorFromBearer(sql, request.headers.get("authorization"));
-  if (bearer) return bearer;
-  const cookie = request.headers.get("cookie") ?? "";
-  const match = cookie.match(new RegExp(`(?:^|;\\s*)${DEMO_COOKIE}=([^;]+)`));
-  const ownerId = await readDemoSession(match?.[1] ? decodeURIComponent(match[1]) : undefined);
-  if (!ownerId) return null;
-  return { ownerId, agentId: null };
+  if (bearer) return [bearer];
+  const cookies = parseCookieHeader(request.headers.get("cookie"));
+  const actors: Actor[] = [];
+  const account = await accountOwnerFromCookies(sql, cookies);
+  if (account) actors.push({ ownerId: account, agentId: null });
+  const demo = await readDemoSession(cookies.find((cookie) => cookie.name === DEMO_COOKIE)?.value);
+  if (demo && demo !== account) actors.push({ ownerId: demo, agentId: null });
+  return actors;
+}
+
+export async function actorFromRequest(request: Request, sql: Sql): Promise<Actor | null> {
+  return (await actorsFromRequest(request, sql))[0] ?? null;
 }
 
 function denied(status: number, error: string): Response {
@@ -60,11 +70,23 @@ export async function requireOwner(request: Request, ownerId: string): Promise<{
   if (limited) return limited;
   const { getDb } = await import("@/src/db/connection");
   const sql = await getDb();
-  const actor = await actorFromRequest(request, sql);
-  if (!actor) return denied(401, "Sign in, or send a bearer token.");
-  if (actor.agentId) return denied(403, "An agent key cannot change the household.");
-  if (actor.ownerId !== ownerId) return denied(403, "This household is not yours.");
+  const actors = await actorsFromRequest(request, sql);
+  if (actors.length === 0) return denied(401, "Sign in, or send a bearer token.");
+  if (actors[0].agentId) return denied(403, "An agent key cannot change the household.");
+  if (!actors.some((actor) => actor.ownerId === ownerId)) return denied(403, "This household is not yours.");
   return { sql };
+}
+
+/** A signed-in account only. The demo session and agent keys are refused. */
+export async function requireAccount(request: Request): Promise<{ sql: Sql; ownerId: string } | Response> {
+  const limited = rateLimit(request, 60);
+  if (limited) return limited;
+  if (request.headers.get("authorization")) return denied(403, "Sign in to your account to do this.");
+  const { getDb } = await import("@/src/db/connection");
+  const sql = await getDb();
+  const ownerId = await accountOwnerFromCookies(sql, parseCookieHeader(request.headers.get("cookie")));
+  if (!ownerId) return denied(401, "Sign in to your account to do this.");
+  return { sql, ownerId };
 }
 
 export async function requireAgent(request: Request, agentId: string): Promise<{ sql: Sql; ownerId: string } | Response> {
@@ -72,13 +94,13 @@ export async function requireAgent(request: Request, agentId: string): Promise<{
   if (limited) return limited;
   const { getDb } = await import("@/src/db/connection");
   const sql = await getDb();
-  const actor = await actorFromRequest(request, sql);
-  if (!actor) return denied(401, "Sign in, or send a bearer token.");
+  const actors = await actorsFromRequest(request, sql);
+  if (actors.length === 0) return denied(401, "Sign in, or send a bearer token.");
   const agent = await getAgent(sql, agentId);
   if (!agent) return denied(404, "Unknown agent.");
-  if (actor.agentId && actor.agentId !== agent.id) return denied(403, "This key is for a different agent.");
-  if (actor.ownerId !== agent.ownerId) return denied(403, "This household is not yours.");
-  return { sql, ownerId: actor.ownerId };
+  if (actors[0].agentId && actors[0].agentId !== agent.id) return denied(403, "This key is for a different agent.");
+  if (!actors.some((actor) => actor.ownerId === agent.ownerId)) return denied(403, "This household is not yours.");
+  return { sql, ownerId: agent.ownerId };
 }
 
 export function positiveCents(value: unknown, max = 100_000_000): number | null {
