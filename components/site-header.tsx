@@ -1,5 +1,4 @@
 import { Wordmark } from "@/components/brand/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SiteHeader({ aside }: { aside?: React.ReactNode }) {
   return (
@@ -7,7 +6,6 @@ export function SiteHeader({ aside }: { aside?: React.ReactNode }) {
       <Wordmark />
       <div className="flex items-center gap-3 text-sm">
         {aside}
-        <ThemeToggle />
       </div>
     </header>
   );

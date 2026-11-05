@@ -1,9 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bot, Inbox, LayoutDashboard, ListChecks, Power, Receipt, Shield, ShoppingBag } from "lucide-react";
+import { ArrowRight, Bot, Compass, Inbox, LayoutDashboard, ListChecks, Power, Receipt, Shield, ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ConnectCard } from "@/components/account/connect-card";
 import { NewAgent } from "@/components/account/new-agent";
@@ -19,7 +19,7 @@ import { StampBurst } from "@/components/motion/stamp-burst";
 import { RefundButton } from "@/components/RefundButton";
 import { ShopPanel, type WatchRow } from "@/components/shop/shop-panel";
 import { SpendForm } from "@/components/SpendForm";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { GuidedTour, type TourStep } from "@/components/tour/guided-tour";
 import { DEMO_KEYS } from "@/src/domain/demo-keys";
 import { formatMoney } from "@/src/domain/money";
 import type { AgentTemplate } from "@/src/domain/templates";
@@ -132,6 +132,38 @@ export function Dashboard({ data }: { data: DashboardData }) {
   const needsSetup = Boolean(account) && (data.agents.length === 0 || data.vault?.status !== "vaulted");
   const [section, setSection] = useState<Nav>(needsSetup ? "Setup" : "Overview");
   const nav = NAV.filter((item) => item.id !== "Setup" || account);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [welcome, setWelcome] = useState(false);
+  const tourKey = account ? `ap_tour_done_${data.owner.id}` : "ap_demo_welcome_done";
+  // First visit: an account opens the tour; the demo shows a welcome card that offers it.
+  useEffect(() => {
+    let seen = true;
+    try {
+      seen = localStorage.getItem(tourKey) === "1";
+    } catch {
+      seen = true;
+    }
+    if (seen) return;
+    if (account) setTourOpen(true);
+    else setWelcome(true);
+  }, [tourKey, account]);
+  const markSeen = () => {
+    try {
+      localStorage.setItem(tourKey, "1");
+    } catch {
+      /* private mode: the tour simply shows again next time */
+    }
+  };
+  const closeTour = () => {
+    setTourOpen(false);
+    markSeen();
+  };
+  const startTour = () => {
+    setWelcome(false);
+    markSeen();
+    setTourOpen(true);
+  };
+  const tourSteps = account ? accountTour(setSection, closeTour) : demoTour(setSection, closeTour);
   const [receiptKind, setReceiptKind] = useState<"all" | "capture" | "refund">("all");
   const [receiptAgent, setReceiptAgent] = useState("all");
   const [paid, setPaid] = useState(false);
@@ -170,12 +202,13 @@ export function Dashboard({ data }: { data: DashboardData }) {
   return (
     <div className="grid min-h-screen w-full grid-cols-[minmax(0,1fr)] md:grid-cols-[236px_minmax(0,1fr)]">
       <StampBurst show={paid} onDone={() => setPaid(false)} />
+      <GuidedTour steps={tourSteps} open={tourOpen} onClose={closeTour} />
       <aside className="band perforated z-10 flex flex-col gap-4 p-3 md:sticky md:top-0 md:h-screen md:p-4">
         <div className="flex items-center justify-between gap-2 px-1 py-1">
           <Wordmark />
-          <div className="md:hidden">
-            <ThemeToggle />
-          </div>
+          <button type="button" className="btn secondary !min-h-9 !px-3 text-xs md:hidden" onClick={startTour}>
+            <Compass className="h-4 w-4" aria-hidden /> Tour
+          </button>
         </div>
         <nav className="flex gap-1 overflow-x-auto [scrollbar-width:none] md:flex-col" aria-label="Dashboard">
           {nav.map((item) => {
@@ -184,6 +217,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             return (
               <button
                 key={item.id}
+                data-tour={`nav-${item.id}`}
                 type="button"
                 onClick={() => setSection(item.id)}
                 className={`flex min-h-11 shrink-0 cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${active ? "bg-on-pine text-[#0f3d2e]" : "text-on-pine-muted hover:bg-white/10 hover:text-on-pine"}`}
@@ -199,8 +233,10 @@ export function Dashboard({ data }: { data: DashboardData }) {
           })}
         </nav>
         <div className="mt-auto hidden md:block">
-          <p className="eyebrow mb-2 px-1">Theme</p>
-          <ThemeToggle />
+          <p className="eyebrow mb-2 px-1">New here?</p>
+          <button type="button" className="btn secondary w-full" onClick={startTour} data-tour="tour-button">
+            <Compass className="h-4 w-4" aria-hidden /> Take the tour
+          </button>
         </div>
       </aside>
 
@@ -221,7 +257,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             </div>
             <div className="max-w-sm text-sm text-muted sm:text-right">
               <p className={`stamp ${paypalMode === "live" ? "allow" : "quiet"}`}>{paypalMode === "live" ? "PayPal sandbox" : "Mock PayPal"}</p>
-              <p className="mt-2">
+              <p className="mt-2" data-tour="paypal">
                 {vault?.status === "vaulted" ? "Linked" : "Not linked"} to PayPal{vault?.status === "vaulted" && vault.payerEmail ? ` as ${vault.payerEmail}` : ""} · <span className="money text-xs">{vault?.paymentTokenId ?? "no payment token"}</span> · AgentPurse does not hold a balance.
               </p>
             </div>
@@ -233,7 +269,26 @@ export function Dashboard({ data }: { data: DashboardData }) {
             <p className="mt-4 rounded-lg border-2 border-deny px-4 py-3 text-sm font-medium text-deny">Panic freeze is on. Every payment is stopped until {owner.name} clears it.</p>
           ) : null}
 
-          <dl className="panel mt-6 grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
+          {welcome ? (
+            <section className="cheque mt-6 p-5 sm:p-6" aria-label="Welcome">
+              <p className="eyebrow">Welcome · live demo, no account needed</p>
+              <h2 className="mt-2 text-3xl leading-tight">This is a checkbook for AI agents.</h2>
+              <p className="mt-2 max-w-2xl text-muted">
+                Maaz&apos;s four agents ask to spend in plain English. A clerk written in plain code pays it, holds it for Maaz to sign, or refuses. PayPal moves the money; AgentPurse never holds it.
+              </p>
+              <div className="actions">
+                <button type="button" className="btn" onClick={startTour}>
+                  Show me around <ArrowRight className="nudge h-4 w-4" aria-hidden />
+                </button>
+                <Link className="btn secondary" href="/signup">Create my own purse</Link>
+                <button type="button" className="cursor-pointer px-2 text-sm text-muted underline underline-offset-[3px]" onClick={() => { setWelcome(false); markSeen(); }}>
+                  I&apos;ll explore
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          <dl data-tour="stats" className="panel mt-6 grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
             <Stat label="Left to spend"><AnimatedNumber cents={totalLeft} /></Stat>
             <Stat label="Spent so far">{formatMoney(totalSpent)}</Stat>
             <Stat label="Waiting on you">{holds.length}</Stat>
@@ -244,7 +299,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             <p className="mt-4 text-sm text-muted"><span className="eyebrow mr-2">Latest</span>{latestDetail}</p>
           ) : null}
 
-          <section className="mt-6" aria-label="Held payments">
+          <section className="mt-6" aria-label="Held payments" data-tour="holds">
             {holds.length === 0 ? <p className="text-sm text-muted">Nothing is held.</p> : (
               <div className="space-y-3">
                 <h2 className="text-2xl">Waiting for your signature</h2>
@@ -288,6 +343,17 @@ export function Dashboard({ data }: { data: DashboardData }) {
 
               {section === "Overview" ? (
                 <div className="space-y-6">
+                  {account && agents.length === 0 ? (
+                    <section className="panel flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-2xl">Your purse is empty, and that is safe.</h2>
+                        <p className="mt-1 text-sm text-muted">No agent can spend until you create one and give it an allowance.</p>
+                      </div>
+                      <button type="button" className="btn" onClick={() => setSection(vault?.status === "vaulted" ? "Agents" : "Setup")}>
+                        {vault?.status === "vaulted" ? "Create your first agent" : "Start setup"} <ArrowRight className="nudge h-4 w-4" aria-hidden />
+                      </button>
+                    </section>
+                  ) : null}
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     {agents.map((agent) => (
                       <AgentCard key={agent.id} agent={agent} todayCents={spentToday(receipts, agent.id)} />
@@ -492,6 +558,66 @@ export function Dashboard({ data }: { data: DashboardData }) {
       </main>
     </div>
   );
+}
+
+function accountTour(go: (nav: Nav) => void, close: () => void): TourStep[] {
+  return [
+    {
+      title: "Welcome to your purse",
+      body: (
+        <>
+          <p>AgentPurse is a checkbook for your AI agents.</p>
+          <p className="mt-2">Your agent asks to pay in plain English. A clerk written in plain code <strong className="text-allow">pays</strong> it, <strong className="text-hold">holds</strong> it for your signature, or <strong className="text-deny">refuses</strong>. PayPal moves the money. AgentPurse never holds it.</p>
+          <p className="mt-2">Five quick stops, then you set it up.</p>
+        </>
+      ),
+    },
+    { target: "nav-Setup", onEnter: () => go("Setup"), title: "1. Start here", body: "Setup is your checklist: link PayPal, create an agent, connect your AI, make a first request. About five minutes. Each step ticks itself off." },
+    { target: "paypal", title: "2. Link PayPal once", body: "You sign in at PayPal and approve. PayPal keeps your wallet; we keep only a token. This line shows whether you are linked. Revoke on Controls deletes the token." },
+    { target: "nav-Agents", title: "3. Create an agent", body: "Pick one of eight templates, like Grocery runner or Travel booker. Change the allowance and limits, save, and copy the ready-made prompt into Claude, Cursor, or Grok." },
+    { target: "holds", title: "4. Sign the big ones", body: "Anything over an agent's hold amount, or at a store you have not trusted, waits here as a cheque. Approve and pay, or Deny." },
+    { target: "nav-Controls", title: "5. The off switch", body: "Panic freeze stops every payment at once. To stop one agent, pause it on the Agents tab." },
+    {
+      title: "Ready? Link PayPal first.",
+      body: "You can replay this tour from the sidebar any time.",
+      actions: (
+        <button type="button" className="btn !min-h-10" onClick={() => { close(); go("Setup"); }}>
+          Start setup <ArrowRight className="h-4 w-4" aria-hidden />
+        </button>
+      ),
+    },
+  ];
+}
+
+function demoTour(go: (nav: Nav) => void, close: () => void): TourStep[] {
+  return [
+    {
+      title: "A checkbook for AI agents",
+      body: (
+        <>
+          <p>This is Maaz&apos;s demo purse. Four agents have allowances: Grocer, Wayfinder, Stack, and Handy.</p>
+          <p className="mt-2">An agent asks to pay in plain English. A clerk in plain code <strong className="text-allow">pays</strong>, <strong className="text-hold">holds</strong> for Maaz, or <strong className="text-deny">refuses</strong>. No model can talk it out of a no.</p>
+        </>
+      ),
+      onEnter: () => go("Overview"),
+    },
+    { target: "stats", title: "The purse at a glance", body: "What is left across all allowances, what was paid, what waits for a signature, and what the guard blocked." },
+    { target: "nav-Agents", title: "Try a held payment", body: "Open Agents. Under Wayfinder, pick \"Hold a $75 seat from Metro Rail\" and press Ask the clerk. It is over the $50 line, so it waits for Maaz." },
+    { target: "holds", title: "Then sign it", body: "The held cheque appears here on every tab. Press Approve and pay. PayPal charges the vaulted wallet; the purse never held the money." },
+    { target: "nav-Shop", title: "Shop real offers", body: "Search the catalog, ask the clerk about an offer, or set a price watch that files a normal request when the price drops." },
+    { target: "nav-Guard", title: "Hidden instructions get caught", body: "A page that tells an agent to buy something else is blocked. The guard compares every purchase with what was actually asked." },
+    { target: "nav-Controls", title: "Kill switch", body: "Panic freeze stops every payment. Revoke deletes the PayPal token. Reset demo puts Maaz's purse back." },
+    {
+      title: "Want your own purse?",
+      body: "Sign up with email. A setup checklist walks you through linking PayPal, picking an agent template, and connecting your AI.",
+      actions: (
+        <>
+          <button type="button" className="btn secondary !min-h-10" onClick={close}>Keep exploring</button>
+          <Link className="btn !min-h-10" href="/signup">Create my purse</Link>
+        </>
+      ),
+    },
+  ];
 }
 
 function spentToday(receipts: Receipt[], agentId: string) {

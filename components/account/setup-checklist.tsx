@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Circle } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { postJson } from "@/components/post-json";
@@ -85,6 +85,7 @@ export function SetupChecklist({
     },
   ];
   const left = steps.filter((step) => !step.done).length;
+  const next = steps.findIndex((step) => !step.done);
 
   return (
     <section className="panel" aria-label="Setup">
@@ -92,10 +93,13 @@ export function SetupChecklist({
       <h2 className="mt-1 text-2xl">Set up your purse</h2>
       <ol className="ledger mt-4">
         {steps.map((step, index) => (
-          <li key={step.title} className="flex gap-3 py-4">
+          <li key={step.title} className={`flex gap-3 py-4 ${index === next ? "-mx-3 rounded-lg bg-sunk px-3" : ""}`}>
             {step.done ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-allow" aria-label="Done" /> : <Circle className="mt-0.5 h-5 w-5 shrink-0 text-muted" aria-label="To do" />}
             <div className="min-w-0 flex-1">
-              <h3 className="text-lg">{index + 1}. {step.title}</h3>
+              <h3 className="flex flex-wrap items-center gap-2 text-lg">
+                {index + 1}. {step.title}
+                {index === next ? <span className="nudge inline-flex items-center gap-1 rounded-full bg-brass px-2 py-0.5 font-sans text-xs font-semibold text-[#14261f]">Start here <ArrowRight className="h-3 w-3" aria-hidden /></span> : null}
+              </h3>
               <p className="mt-1 max-w-2xl text-sm text-muted">{step.body}</p>
               {step.action ? <div className="mt-3">{step.action}</div> : null}
             </div>

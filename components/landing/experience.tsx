@@ -1,18 +1,25 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowDown, ArrowRight, Bot, KeyRound, MessageSquareText, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AgentFace } from "@/components/agents/faces";
 import { Cheque, type StampTone } from "@/components/brand/cheque";
 import { Wordmark } from "@/components/brand/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 const STEPS: Array<{ title: string; body: string; stamp?: { tone: StampTone; label: string } }> = [
   { title: "The agent asks", body: "Wayfinder wants a $75 seat. It can write the cheque. It cannot sign it." },
   { title: "The guard reads", body: "A hidden line on the page says to buy gift cards. That is not the task, so it goes nowhere." },
   { title: "The clerk decides", body: "$75 is over Maaz’s $50 line, so the cheque waits for a person.", stamp: { tone: "hold", label: "Held" } },
   { title: "PayPal pays", body: "Maaz approves. PayPal pays Metro Rail. The purse never held the money.", stamp: { tone: "allow", label: "Paid" } },
+];
+
+const START = [
+  { icon: KeyRound, title: "Create your account", body: "Email and password. Your purse starts empty, so nothing can be spent yet." },
+  { icon: Wallet, title: "Link PayPal", body: "Sign in at PayPal once. PayPal keeps the wallet; we keep only a token you can revoke." },
+  { icon: Bot, title: "Pick an agent template", body: "Eight to choose from. Set the allowance, the caps, and when it must ask you." },
+  { icon: MessageSquareText, title: "Paste the prompt", body: "Copy one ready-made prompt into Claude, Cursor, or Grok. Your agent can now ask to pay." },
 ];
 
 const CREW = [
@@ -73,12 +80,12 @@ export function LandingExperience() {
           <header className="flex items-center justify-between gap-3 py-5">
             <Wordmark />
             <nav className="flex items-center gap-5 text-sm" aria-label="Page">
+              <a className="hidden no-underline hover:underline sm:inline" href="#start">Get started</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#try">Try it</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#how">How it works</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#pricing">Pricing</a>
               <Link className="hidden no-underline hover:underline sm:inline" href="/tutorial">Tutorial</Link>
-              <Link className="no-underline hover:underline" href="/login">Sign in</Link>
-              <ThemeToggle />
+              <Link className="btn secondary !min-h-9 !px-3" href="/login">Sign in</Link>
             </nav>
           </header>
 
@@ -92,9 +99,18 @@ export function LandingExperience() {
                 Agents find real offers through Channel3 and pay through your saved PayPal wallet. A clerk written in plain code allows, holds, or refuses every purchase, and no model can talk it out of a no.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link className="btn" href="/purses/purse_maaz">Open Maaz&apos;s household</Link>
-                <Link className="btn secondary" href="/demo/injection">Watch a page get caught</Link>
-                <Link className="btn secondary" href="/signup">Create your own purse</Link>
+                <Link className="btn" href="/signup">
+                  Create your purse <ArrowRight className="nudge h-4 w-4" aria-hidden />
+                </Link>
+                <Link className="btn secondary" href="/login">I have an account</Link>
+              </div>
+              <div className="mt-6 max-w-xl rounded-xl border border-white/25 px-4 py-3">
+                <p className="eyebrow">Judging or just looking?</p>
+                <p className="mt-1 text-sm text-on-pine-muted">No account needed. Open Maaz&apos;s demo purse; it walks you through on the first visit.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link className="btn" href="/purses/purse_maaz">Open Maaz&apos;s household</Link>
+                  <Link className="btn secondary" href="/demo/injection">Watch a page get caught</Link>
+                </div>
               </div>
             </div>
             <HeroFilm step={step} onStep={setStep} reduce={Boolean(reduce)} />
@@ -103,7 +119,40 @@ export function LandingExperience() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <section className="py-16" aria-labelledby="crew-title">
+        <section id="start" className="scroll-mt-6 py-16" aria-labelledby="start-title">
+          <p className="eyebrow">Get started · about five minutes</p>
+          <h2 id="start-title" className="mt-2 text-3xl sm:text-4xl">Four steps to your first agent.</h2>
+          <p className="mt-2 max-w-xl text-muted">After you sign in, a checklist on your dashboard walks you through each one and ticks it off.</p>
+          <ol className="mt-8 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-stretch">
+            {START.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.title} className="contents">
+                  <div className="panel flex flex-col">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pine font-serif text-lg text-on-pine">{index + 1}</span>
+                      <Icon className="h-5 w-5 text-muted" aria-hidden />
+                    </div>
+                    <h3 className="mt-3 text-xl">{item.title}</h3>
+                    <p className="mt-1 text-sm text-muted">{item.body}</p>
+                  </div>
+                  {index < START.length - 1 ? (
+                    <div className="flex items-center justify-center text-brass" aria-hidden>
+                      <ArrowRight className="hidden h-6 w-6 lg:block" />
+                      <ArrowDown className="h-6 w-6 lg:hidden" />
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link className="btn" href="/signup">Create your purse</Link>
+            <Link className="btn secondary" href="/tutorial">Read the full tutorial</Link>
+          </div>
+        </section>
+
+        <section className="border-t border-line py-16" aria-labelledby="crew-title">
           <h2 id="crew-title" className="text-3xl sm:text-4xl">Meet the crew.</h2>
           <p className="mt-2 max-w-xl text-muted">Four demo agents, each with their own allowance, their own rules, and no way to pay without the clerk.</p>
           <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -229,7 +278,10 @@ export function LandingExperience() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-4xl sm:text-5xl">The checkbook is open.</h2>
           <p className="mx-auto mt-3 max-w-lg text-on-pine-muted">Maaz’s PayPal is already vaulted. Grocer, Wayfinder, Stack, and Handy are waiting with allowances.</p>
-          <Link className="btn mt-6" href="/purses/purse_maaz">Enter the dashboard</Link>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link className="btn" href="/purses/purse_maaz">Enter the demo dashboard</Link>
+            <Link className="btn secondary" href="/signup">Create your own purse</Link>
+          </div>
         </div>
       </section>
     </div>
