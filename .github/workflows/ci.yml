@@ -20,3 +20,23 @@ jobs:
       - run: npx playwright test
         env:
           CI: "true"
+
+  hermes-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Plugin unit tests
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pytest>=8.3.0,<9"
+          python -m pytest plugins/hermes/tests
+      - name: Install Hermes
+        run: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --non-interactive --skip-browser --skip-computer-use
+      - name: Validate the plugin
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          hermes plugins validate plugins/hermes --install-deps
+          hermes plugins doctor plugins/hermes --ci
