@@ -90,3 +90,7 @@ User: "Buy oat milk from Green Grocer for $18.40."
 3. `request_purchase` with the quote id.
 4. Status `captured`. `custom_id` on the PayPal order is the intent id.
 5. `list_receipts` shows Green Grocer.
+
+## Hermes
+
+`plugins/hermes/` is a native Hermes Agent plugin for the same MCP server. It adds Hermes' own approval prompt, a per-chat spend limit, and `/purse kill` in front of `request_purchase`. Install and disclosures are in `plugins/hermes/README.md`. The demo key above is the one Hermes asks for as `AGENTPURSE_API_KEY`. `GET /api/spends/:id` is the read-only status that plugin polls when the clerk holds a cheque. It does not approve or pay.

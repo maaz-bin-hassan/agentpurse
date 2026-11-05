@@ -17,6 +17,8 @@ data/*.db-shm
 
 npm-debug.log*
 .DS_Store
+__pycache__/
+*.py[cod]
 coverage
 test-results
 playwright-report

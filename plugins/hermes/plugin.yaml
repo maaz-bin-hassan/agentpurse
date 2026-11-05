@@ -1,0 +1,44 @@
+name: agentpurse
+version: "1.0.0"
+description: Search, quote, and buy inside an AgentPurse allowance. Every purchase waits for Hermes' approval prompt. PayPal sandbox only.
+author: Maaz Hassan
+license: MIT
+homepage: https://github.com/maaz-bin-hassan/agentpurse
+manifest_version: 2
+requires_hermes: ">=0.22.7"
+requires_env:
+  - name: AGENTPURSE_API_KEY
+    description: AgentPurse agent API key. The Grocer demo key works on the public sandbox.
+    url: https://agentpurse.vercel.app
+    secret: true
+provides_tools:
+  - search_merchants
+  - search_products
+  - get_product
+  - check_price
+  - find_alternatives
+  - get_quote
+  - request_purchase
+  - watch_price
+  - list_watches
+  - cancel_watch
+  - get_budget
+  - list_receipts
+provides_hooks:
+  - pre_tool_call
+config_schema:
+  base_url:
+    type: str
+    default: "https://agentpurse.vercel.app"
+    label: AgentPurse URL
+    description: Origin of the AgentPurse server. The plugin calls this host for MCP and for payment status.
+  spend_limit_cents:
+    type: int
+    default: 5000
+    label: Per-chat spend limit (cents)
+    description: Integer cents this chat may capture. A purchase that would pass the limit is blocked before PayPal. 0 blocks every purchase.
+  approval_timeout_s:
+    type: int
+    default: 120
+    label: Passkey wait (seconds)
+    description: How long to poll after AgentPurse holds a cheque. Unattended runs do not wait. 0 returns the approval URL immediately.
