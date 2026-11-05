@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { AgentFace } from "@/components/agents/faces";
 import { Cheque, type StampTone } from "@/components/brand/cheque";
 import { Wordmark } from "@/components/brand/logo";
+import { DemoVideo } from "@/components/demo-video";
 
 const STEPS: Array<{ title: string; body: string; stamp?: { tone: StampTone; label: string } }> = [
   { title: "The agent asks", body: "Wayfinder wants a $75 seat. It can write the cheque. It cannot sign it." },
@@ -80,6 +81,7 @@ export function LandingExperience() {
           <header className="flex items-center justify-between gap-3 py-5">
             <Wordmark />
             <nav className="flex items-center gap-5 text-sm" aria-label="Page">
+              <a className="hidden no-underline hover:underline sm:inline" href="#video">Watch the demo</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#start">Get started</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#try">Try it</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#how">How it works</a>
@@ -119,7 +121,22 @@ export function LandingExperience() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <section id="start" className="scroll-mt-6 py-16" aria-labelledby="start-title">
+        <section id="video" className="scroll-mt-6 grid gap-8 py-16 lg:grid-cols-[0.8fr_1.2fr] lg:items-center" aria-labelledby="video-title">
+          <div>
+            <p className="eyebrow">Watch the demo</p>
+            <h2 id="video-title" className="mt-2 text-3xl sm:text-4xl">See an agent ask, and the clerk decide.</h2>
+            <p className="mt-3 max-w-md text-muted">
+              An agent asks to pay, a hidden page instruction gets blocked, a big cheque waits for a signature, and PayPal settles it. All in one short video.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link className="btn" href="/signup">Create your purse</Link>
+              <Link className="btn secondary" href="/purses/purse_maaz">Try the live demo</Link>
+            </div>
+          </div>
+          <DemoVideo />
+        </section>
+
+        <section id="start" className="scroll-mt-6 border-t border-line py-16" aria-labelledby="start-title">
           <p className="eyebrow">Get started · about five minutes</p>
           <h2 id="start-title" className="mt-2 text-3xl sm:text-4xl">Four steps to your first agent.</h2>
           <p className="mt-2 max-w-xl text-muted">After you sign in, a checklist on your dashboard walks you through each one and ticks it off.</p>

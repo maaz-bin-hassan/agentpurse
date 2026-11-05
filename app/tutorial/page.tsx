@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { ConnectCard } from "@/components/account/connect-card";
+import { DemoVideo } from "@/components/demo-video";
 import { SiteHeader } from "@/components/site-header";
 import { paypalMode, publicBaseUrl } from "@/src/config";
 import { AGENT_TEMPLATES } from "@/src/domain/templates";
@@ -56,6 +57,12 @@ export default async function TutorialPage() {
       ) : (
         <p className="mt-4 rounded-lg border border-line bg-card px-4 py-3 text-sm">This copy runs on mock PayPal. Linking is instant and no money moves.</p>
       )}
+
+      <section className="mt-8" aria-label="Demo video">
+        <h2 className="text-2xl">Watch it first</h2>
+        <p className="mt-1 text-sm text-muted">The whole flow in one short video, then follow the steps below.</p>
+        <DemoVideo className="mt-4" />
+      </section>
 
       <ol className="mt-10 space-y-8">
         {STEPS.map((step, index) => (
