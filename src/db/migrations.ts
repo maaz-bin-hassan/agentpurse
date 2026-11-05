@@ -81,7 +81,9 @@ export async function applyMigrations(sql: Sql, dir = migrationsDir()): Promise<
       skipped.push(version);
       continue;
     }
-    const statements = splitSql(fs.readFileSync(path.join(dir, file), "utf8"));
+    const source = fs.readFileSync(path.join(dir, file), "utf8");
+    // A file that starts with "-- postgres-only" is recorded on SQLite but not run there.
+    const statements = sql.dialect === "sqlite" && source.startsWith("-- postgres-only") ? [] : splitSql(source);
     const appliedAt = new Date().toISOString();
     await sql.transaction(async (tx) => {
       for (const statement of statements) await tx.exec(statement);

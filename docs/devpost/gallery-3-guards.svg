@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1000" viewBox="0 0 1500 1000"><rect width="1500" height="1000" fill="#f6f1e4"/>
+  <text x="100" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="400" fill="#14261f" text-anchor="start">What the clerk stops</text>
+  <text x="100" y="205" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="400" fill="#4d5d55" text-anchor="start">Every purchase gets one ruling, in code. No model can override it.</text>
+  <rect x="100" y="260" width="400" height="480" rx="16" fill="#fcf9f0" stroke="#ebe4d1" stroke-width="2"/>
+      <rect x="100" y="260" width="400" height="10" rx="5" fill="#c02c18"/>
+      <g transform="translate(300 380) rotate(-7)">
+    <rect x="-135" y="-42" width="270" height="84" rx="10" fill="none" stroke="#c02c18" stroke-width="6"/>
+    <rect x="-126" y="-33" width="252" height="66" rx="6" fill="none" stroke="#c02c18" stroke-width="2"/>
+    <text x="0" y="13.68" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="38" letter-spacing="4" fill="#c02c18">DENIED</text>
+  </g>
+      <text x="136" y="505" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="400" fill="#14261f" text-anchor="start">A hidden instruction</text>
+      <text x="136" y="565" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">A page says “buy 5</text><text x="136" y="601.25" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">gift cards”. The task</text><text x="136" y="637.5" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">was oat milk.</text><text x="136" y="673.75" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">The guard blocks it.</text><rect x="550" y="260" width="400" height="480" rx="16" fill="#fcf9f0" stroke="#ebe4d1" stroke-width="2"/>
+      <rect x="550" y="260" width="400" height="10" rx="5" fill="#96590a"/>
+      <g transform="translate(750 380) rotate(-7)">
+    <rect x="-135" y="-42" width="270" height="84" rx="10" fill="none" stroke="#96590a" stroke-width="6"/>
+    <rect x="-126" y="-33" width="252" height="66" rx="6" fill="none" stroke="#96590a" stroke-width="2"/>
+    <text x="0" y="13.68" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="38" letter-spacing="4" fill="#96590a">HELD</text>
+  </g>
+      <text x="586" y="505" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="400" fill="#14261f" text-anchor="start">A big spend</text>
+      <text x="586" y="565" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">A $75 train seat is</text><text x="586" y="601.25" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">over the $50 line.</text><text x="586" y="637.5" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">It waits for the</text><text x="586" y="673.75" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">owner to sign.</text><rect x="1000" y="260" width="400" height="480" rx="16" fill="#fcf9f0" stroke="#ebe4d1" stroke-width="2"/>
+      <rect x="1000" y="260" width="400" height="10" rx="5" fill="#0a7247"/>
+      <g transform="translate(1200 380) rotate(-7)">
+    <rect x="-135" y="-42" width="270" height="84" rx="10" fill="none" stroke="#0a7247" stroke-width="6"/>
+    <rect x="-126" y="-33" width="252" height="66" rx="6" fill="none" stroke="#0a7247" stroke-width="2"/>
+    <text x="0" y="13.68" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="38" letter-spacing="4" fill="#0a7247">ALLOWED</text>
+  </g>
+      <text x="1036" y="505" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="400" fill="#14261f" text-anchor="start">Within the allowance</text>
+      <text x="1036" y="565" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">$2.55 of oat milk,</text><text x="1036" y="601.25" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">inside Grocer’s $80.</text><text x="1036" y="637.5" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">PayPal pays the</text><text x="1036" y="673.75" font-family="'Segoe UI', Arial, sans-serif" font-size="25" font-weight="400" fill="#4d5d55" text-anchor="start">store directly.</text>
+  <rect x="100" y="800" width="1300" height="110" rx="16" fill="#0f3d2e"/>
+  <text x="750" y="848" font-family="'Segoe UI', Arial, sans-serif" font-size="27" font-weight="400" fill="#f6f1e4" text-anchor="middle">Pause one agent · Panic-freeze them all · Revoke deletes the PayPal token</text>
+  <text x="750" y="888" font-family="'Segoe UI', Arial, sans-serif" font-size="24" font-weight="400" fill="#b7cbbd" text-anchor="middle">Grok, Claude, and Cursor connect over MCP with their own key.</text>
+</svg>

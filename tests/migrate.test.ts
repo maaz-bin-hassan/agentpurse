@@ -19,9 +19,13 @@ describe("ordered migrations and idempotent seed", () => {
     const sql = await openPglite();
     const first = await applyMigrations(sql);
     const second = await applyMigrations(sql);
-    expect(first.applied).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes", "0004_rename_demo_owner", "0005_channel3", "0006_rename_demo_keys"]);
+    expect(first.applied).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes", "0004_rename_demo_owner", "0005_channel3", "0006_rename_demo_keys", "0007_enable_rls"]);
     expect(second.applied).toEqual([]);
-    expect(second.skipped).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes", "0004_rename_demo_owner", "0005_channel3", "0006_rename_demo_keys"]);
+    expect(second.skipped).toEqual(["0001_agentpurse", "0002_agentic_commerce", "0003_single_use_quotes", "0004_rename_demo_owner", "0005_channel3", "0006_rename_demo_keys", "0007_enable_rls"]);
+    const unprotected = await sql.all(
+      "SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity",
+    );
+    expect(unprotected).toEqual([]);
 
     await seedDemo(sql, { now: NOW, ifMissing: true });
     await sql.exec(
@@ -61,6 +65,7 @@ describe("ordered migrations and idempotent seed", () => {
     const sql = openSqlite(":memory:");
     const report = await applyMigrations(sql);
     expect(report.applied).toContain("0002_agentic_commerce");
+    expect(report.applied).toContain("0007_enable_rls");
     const owners = await sql.get("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'owners'");
     expect(owners?.name).toBe("owners");
     await sql.close();

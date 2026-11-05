@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1000" viewBox="0 0 1500 1000"><rect width="1500" height="1000" fill="#0f3d2e"/>
+  <circle cx="1320" cy="140" r="380" fill="#0a2d22"/>
+  <text x="100" y="300" font-family="Georgia, 'Times New Roman', serif" font-size="120" font-weight="400" fill="#f6f1e4" text-anchor="start">AgentPurse</text>
+  <rect x="104" y="345" width="120" height="6" fill="#c9962f"/>
+  <text x="100" y="430" font-family="Georgia, 'Times New Roman', serif" font-size="46" font-weight="400" fill="#f6f1e4" text-anchor="start">A checkbook for AI agents.</text>
+  <text x="100" y="520" font-family="'Segoe UI', Arial, sans-serif" font-size="34" font-weight="400" fill="#b7cbbd" text-anchor="start">Your agent can shop.</text><text x="100" y="567.6" font-family="'Segoe UI', Arial, sans-serif" font-size="34" font-weight="400" fill="#b7cbbd" text-anchor="start">Only the clerk can pay.</text>
+  <text x="100" y="860" font-family="Consolas, 'Courier New', monospace" font-size="28" font-weight="400" fill="#c9962f" text-anchor="start">PayPal sandbox · Channel3 · MCP</text>
+  <text x="100" y="910" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="400" fill="#f6f1e4" text-anchor="start">The agent never sees your card.</text>
+  <g transform="translate(780 420) rotate(-3 320 200)">
+    <rect width="640" height="400" rx="14" fill="#fcf9f0"/>
+    <rect x="12" y="12" width="616" height="376" rx="8" fill="none" stroke="#c9962f" stroke-width="2"/>
+    <text x="40" y="66" font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="400" fill="#4d5d55" text-anchor="start">AgentPurse cheque</text>
+    <text x="600" y="66" font-family="Consolas, 'Courier New', monospace" font-size="20" font-weight="400" fill="#4d5d55" text-anchor="end">No. 0042</text>
+    <text x="40" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="16" font-weight="700" fill="#4d5d55" text-anchor="start">PAY TO</text>
+    <text x="40" y="168" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="400" fill="#14261f" text-anchor="start">Green Grocer</text>
+    <rect x="410" y="122" width="190" height="62" rx="8" fill="#ebe4d1"/>
+    <text x="505" y="165" font-family="Consolas, 'Courier New', monospace" font-size="34" font-weight="700" fill="#14261f" text-anchor="middle">$2.55</text>
+    <line x1="40" y1="200" x2="600" y2="200" stroke="#ebe4d1" stroke-width="2"/>
+    <text x="40" y="238" font-family="'Segoe UI', Arial, sans-serif" font-size="16" font-weight="700" fill="#4d5d55" text-anchor="start">MEMO</text>
+    <text x="40" y="274" font-family="Georgia, 'Times New Roman', serif" font-size="26" font-weight="400" fill="#14261f" text-anchor="start">“Buy oat milk from Green Grocer”</text>
+    <text x="40" y="360" font-family="Consolas, 'Courier New', monospace" font-size="20" font-weight="400" fill="#4d5d55" text-anchor="start">Agent: Grocer</text>
+    <g transform="translate(470 318) rotate(-10)">
+    <rect x="-125" y="-37" width="250" height="74" rx="10" fill="none" stroke="#0a7247" stroke-width="6"/>
+    <rect x="-116" y="-28" width="232" height="56" rx="6" fill="none" stroke="#0a7247" stroke-width="2"/>
+    <text x="0" y="12.24" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="34" letter-spacing="4" fill="#0a7247">ALLOWED</text>
+  </g>
+  </g>
+</svg>

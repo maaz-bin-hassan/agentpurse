@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1000" viewBox="0 0 1500 1000"><rect width="1500" height="1000" fill="#f6f1e4"/>
+  <text x="90" y="150" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="400" fill="#14261f" text-anchor="start">How a dollar moves</text>
+  <text x="90" y="210" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="400" fill="#4d5d55" text-anchor="start">The model may read the sentence. It never moves the money.</text>
+  <rect x="90" y="300" width="300" height="420" rx="16" fill="#fcf9f0" stroke="#ebe4d1" stroke-width="2"/>
+      <circle cx="140" cy="358" r="26" fill="#0f3d2e"/>
+      <text x="140" y="368" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="#f6f1e4" text-anchor="middle">1</text>
+      <text x="120" y="440" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="400" fill="#14261f" text-anchor="start">Agent asks</text>
+      <text x="120" y="500" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">In plain English:</text><text x="120" y="533.35" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">“Buy oat milk from</text><text x="120" y="566.7" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">Green Grocer for</text><text x="120" y="600.05" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">$2.55.”</text>
+      <rect x="120" y="640" width="240" height="48" rx="24" fill="#c9962f"/>
+      <text x="240" y="672" font-family="'Segoe UI', Arial, sans-serif" font-size="21" font-weight="700" fill="#f6f1e4" text-anchor="middle">AI reads</text>
+      <path d="M 396 510 l 26 0" stroke="#c9962f" stroke-width="4"/><path d="M 426 510 l -14 -10 l 0 20 z" fill="#c9962f"/><rect x="430" y="300" width="300" height="420" rx="16" fill="#fcf9f0" stroke="#ebe4d1" stroke-width="2"/>
+      <circle cx="480" cy="358" r="26" fill="#0f3d2e"/>
+      <text x="480" y="368" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="#f6f1e4" text-anchor="middle">2</text>
+      <text x="460" y="440" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="400" fill="#14261f" text-anchor="start">Guard checks</text>
+      <text x="460" y="500" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">Does it match the</text><text x="460" y="533.35" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">user’s task?</text><text x="460" y="566.7" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">Hidden page</text><text x="460" y="600.05" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">instructions blocked.</text>
+      <rect x="460" y="640" width="240" height="48" rx="24" fill="#c02c18"/>
+      <text x="580" y="672" font-family="'Segoe UI', Arial, sans-serif" font-size="21" font-weight="700" fill="#f6f1e4" text-anchor="middle">Task guard</text>
+      <path d="M 736 510 l 26 0" stroke="#c9962f" stroke-width="4"/><path d="M 766 510 l -14 -10 l 0 20 z" fill="#c9962f"/><rect x="770" y="300" width="300" height="420" rx="16" fill="#fcf9f0" stroke="#ebe4d1" stroke-width="2"/>
+      <circle cx="820" cy="358" r="26" fill="#0f3d2e"/>
+      <text x="820" y="368" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="#f6f1e4" text-anchor="middle">3</text>
+      <text x="800" y="440" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="400" fill="#14261f" text-anchor="start">Clerk decides</text>
+      <text x="800" y="500" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">Allowance, caps,</text><text x="800" y="533.35" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">the $50 approval line.</text><text x="800" y="566.7" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">Allow, hold, or deny.</text>
+      <rect x="800" y="640" width="240" height="48" rx="24" fill="#0a7247"/>
+      <text x="920" y="672" font-family="'Segoe UI', Arial, sans-serif" font-size="21" font-weight="700" fill="#f6f1e4" text-anchor="middle">Code decides</text>
+      <path d="M 1076 510 l 26 0" stroke="#c9962f" stroke-width="4"/><path d="M 1106 510 l -14 -10 l 0 20 z" fill="#c9962f"/><rect x="1110" y="300" width="300" height="420" rx="16" fill="#fcf9f0" stroke="#ebe4d1" stroke-width="2"/>
+      <circle cx="1160" cy="358" r="26" fill="#0f3d2e"/>
+      <text x="1160" y="368" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="#f6f1e4" text-anchor="middle">4</text>
+      <text x="1140" y="440" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="400" fill="#14261f" text-anchor="start">PayPal pays</text>
+      <text x="1140" y="500" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">Orders v2 charges the</text><text x="1140" y="533.35" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">vaulted wallet and</text><text x="1140" y="566.7" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">pays the merchant.</text><text x="1140" y="600.05" font-family="'Segoe UI', Arial, sans-serif" font-size="23" font-weight="400" fill="#4d5d55" text-anchor="start">Webhook confirms.</text>
+      <rect x="1140" y="640" width="240" height="48" rx="24" fill="#0f3d2e"/>
+      <text x="1260" y="672" font-family="'Segoe UI', Arial, sans-serif" font-size="21" font-weight="700" fill="#f6f1e4" text-anchor="middle">PayPal moves money</text>
+      
+  <rect x="90" y="800" width="1320" height="110" rx="16" fill="#0f3d2e"/>
+  <text x="750" y="848" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="400" fill="#f6f1e4" text-anchor="middle">The agent holds a key and an allowance, never your card.</text>
+  <text x="750" y="888" font-family="'Segoe UI', Arial, sans-serif" font-size="24" font-weight="400" fill="#b7cbbd" text-anchor="middle">AgentPurse never holds your money. PayPal does the paying.</text>
+</svg>
