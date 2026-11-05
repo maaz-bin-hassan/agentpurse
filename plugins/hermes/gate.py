@@ -27,9 +27,13 @@ class Preview:
     merchant_blocked: bool
 
 
-def rule_key(fingerprint: str) -> str:
-    digest = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:16]
-    return f"agentpurse:{digest}"
+RULE_PREFIX = "agentpurse:"
+
+
+def rule_key(fingerprint: str, nonce: str) -> str:
+    """One key per attempt. A saved Session or Always answer can never match a later payment."""
+    digest = hashlib.sha256(f"{fingerprint}|{nonce}".encode("utf-8")).hexdigest()[:24]
+    return f"{RULE_PREFIX}{digest}"
 
 
 def decide(
@@ -42,6 +46,7 @@ def decide(
     preview_error: str,
     spent_cents: int | None,
     spend_limit_cents: int,
+    nonce: str = "",
 ) -> dict | None:
     if tool_name not in GOVERNED:
         return None
@@ -76,7 +81,7 @@ def decide(
     return {
         "action": "approve",
         "message": _prompt(tool_name, preview, spent_cents, projected, spend_limit_cents),
-        "rule_key": rule_key(preview.fingerprint),
+        "rule_key": rule_key(preview.fingerprint, nonce),
     }
 
 

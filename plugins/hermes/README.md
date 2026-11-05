@@ -96,7 +96,9 @@ sequenceDiagram
   end
 ```
 
-The hook never returns a silent allow for `request_purchase` or `watch_price`. It returns `block`, or `approve` so Hermes shows its own prompt. The handler pays only if that hook left a one-time grant for the same chat, tool, merchant, amount, and tool-call id. A skipped hook cannot spend.
+The hook never returns a silent allow for `request_purchase` or `watch_price`. It returns `block`, or `approve` so Hermes shows its own prompt. That `approve` leaves a proposed one-time grant for the same chat, tool, merchant, and amount. The grant can spend only after Hermes' `post_approval_response` hook reports that a person chose Once, Session, or Always on that exact prompt. A skipped hook cannot spend, and neither can an approval no person gave.
+
+Hermes can approve a plugin prompt without asking anyone: `--yolo`, `/yolo`, `approvals.mode: off` (the Desktop "Approvals: off" toggle), cron or single-query auto-approve, and smart approval, where an auxiliary model decides. None of those fires a human answer, so the handler refuses with "Hermes let this payment through without asking a person". Smart approvals (`decided_by: aux_llm`) are refused too: a model never moves the money. Each attempt gets its own `rule_key`, so a saved Session or Always answer never covers a later payment.
 
 These runs are blocked before a prompt, so they cannot hang and Hermes cannot auto-approve them:
 
@@ -107,9 +109,9 @@ These runs are blocked before a prompt, so they cannot hang and Hermes cannot au
 - cron (`HERMES_CRON_SESSION`)
 - single-query (`hermes chat -q`, `HERMES_SINGLE_QUERY_SESSION`)
 - an unattended worker or a platform with no approval card
-- Hermes started with `--yolo`, or a session marker that says YOLO is on
+- Hermes started with `--yolo` (`HERMES_YOLO_MODE`)
 
-Hermes itself skips approval prompts when the operator turns approvals off or enables YOLO from inside a gateway session. Do not point a purse at a profile in that mode. This plugin still refuses cron, single-query, and sessions with no approver even if Hermes' own cron mode is set to approve.
+Any other bypass is caught at the handler by the missing human answer, as above.
 
 If the clerk holds the cheque (`pending_approval`), the handler returns the dashboard URL (`/purses/<owner>?hold=<intent>`) and polls `GET /api/spends/<id>` until the status settles or `approval_timeout_s` elapses. The poll stops early if the kill switch comes on. It does not approve the cheque. Signing is the owner's passkey or the dashboard. Unattended runs do not poll.
 
@@ -130,7 +132,7 @@ State (kill switch, quote cache, per-chat ledger) is in the plugin's Hermes stat
 
 - **Network.** The plugin calls the configured AgentPurse origin over HTTPS (HTTP only on localhost). That is `https://agentpurse.vercel.app` by default: `POST /mcp` and `GET /api/spends/<id>`. AgentPurse, not this plugin, talks to the PayPal sandbox and to Channel3. Redirects are refused so the bearer token cannot leave that host.
 - **Credential.** `AGENTPURSE_API_KEY` is stored by Hermes and read through Hermes' secret scope. The plugin does not read `.env`, `auth.json`, or another tool's login.
-- **Local ledger.** The plugin stores a kill switch, a short quote cache, and the cents captured in each chat, in Hermes plugin state. It does not store the API key there.
+- **Local ledger.** The plugin stores a kill switch, a short quote cache, short-lived approval grants, and the cents captured in each chat, in Hermes plugin state. It does not store the API key there.
 - **No shell, no background work, no telemetry.** The plugin does not spawn processes, does not patch Hermes, and does not phone home. There is no self-updater.
 - **Sandbox only.** Demo keys move sandbox money. A receipt is not a retailer order. Channel3 checkout is not live.
 - **Dependencies.** No third-party Python packages. The HTTP client is the standard library, so there is no unpinned requirement for Hermes to resolve.
@@ -144,7 +146,7 @@ python -m pip install "pytest>=8.3,<9"
 pytest
 ```
 
-The suite mocks the MCP client. It covers the approval grant, blocked merchants, spend-limit boundaries, the kill switch, cron and single-query fail-closed, passkey poll timeouts, and purchase calls that are not retried.
+The suite mocks the MCP client. It covers the approval grant, approvals no person gave (YOLO, approvals off, smart, deny, timeout), blocked merchants, spend-limit boundaries, the kill switch, cron and single-query fail-closed, passkey poll timeouts, and purchase calls that are not retried.
 
 Catalog admission, from a Hermes 0.22.7 install:
 

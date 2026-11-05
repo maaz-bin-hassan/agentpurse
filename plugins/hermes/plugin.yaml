@@ -26,6 +26,7 @@ provides_tools:
   - list_receipts
 provides_hooks:
   - pre_tool_call
+  - post_approval_response
 config_schema:
   base_url:
     type: str

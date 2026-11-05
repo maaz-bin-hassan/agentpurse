@@ -8,11 +8,12 @@ The entry to add is `plugins/hermes/catalog/agentpurse.yaml` in this repo, copie
 
 - Twelve tools, one per AgentPurse MCP tool, registered with `ctx.register_tool`.
 - `pre_tool_call` on `request_purchase` and `watch_price`. The hook returns `block` or `approve`. `approve` is Hermes' human gate. The plugin never approves a payment itself.
+- `post_approval_response` (observer only). It marks the grant for that prompt's `plugin_rule:agentpurse:*` key as approved when a person chose Once, Session, or Always. It never vetoes or answers a prompt.
 - Slash command `/purse` with `budget`, `receipts`, `kill`, and `resume`.
 - Bundled skill `shop`, registered with `ctx.register_skill`.
 - No Desktop pane, no middleware, no shell, no background process.
 
-The handler sends a purchase only after the hook records a one-time grant for that merchant, amount, chat, and tool-call id. Cron, single-query, unattended platforms, a missing approver, and `--yolo` are blocked before a prompt so the run cannot hang and Hermes' cron auto-approve mode cannot spend. `/purse kill` blocks the next purchase and cancels open price watches.
+The handler sends a purchase only after the hook records a one-time grant for that merchant, amount, and chat, and `post_approval_response` reports that a person approved that prompt. YOLO, `/yolo`, approvals off, cron or single-query auto-approve, and smart (auxiliary model) approval never produce a human answer, so they cannot spend. Each attempt has its own `rule_key`, so a saved Always answer cannot cover a later payment. Cron, single-query, unattended platforms, a missing approver, and `--yolo` are also blocked before a prompt so the run cannot hang. `/purse kill` blocks the next purchase and cancels open price watches.
 
 If the clerk holds a cheque, the plugin returns the dashboard URL and polls `GET /api/spends/:id` until the status settles or `approval_timeout_s` elapses.
 
@@ -20,7 +21,7 @@ If the clerk holds a cheque, the plugin returns the dashboard URL and polls `GET
 
 - Network calls to the configured AgentPurse origin, default `https://agentpurse.vercel.app` (`POST /mcp`, `GET /api/spends/:id`). Through that server, the PayPal sandbox and Channel3. Redirects are refused so the bearer token stays on that host.
 - `AGENTPURSE_API_KEY` is stored by Hermes and read with `agent.secret_scope.get_secret`. The plugin does not read `.env`, `auth.json`, or any other credential file.
-- Plugin state holds a kill switch, a short quote cache, and a per-chat ledger of captured cents. The API key is not stored there.
+- Plugin state holds a kill switch, a short quote cache, short-lived approval grants, and a per-chat ledger of captured cents. The API key is not stored there.
 - No shell commands, no child processes, no telemetry, no self-update, no Hermes core patch.
 - Sandbox money only. A receipt is not a retailer order.
 

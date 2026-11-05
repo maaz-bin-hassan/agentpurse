@@ -68,6 +68,16 @@ def ctx_with_quote(merchant="Green Grocer", amount=255, guard="pass", limit=5000
     return ctx
 
 
+def human_approves(ctx, directive, choice="once", **extra):
+    service.on_approval_response(ctx, {
+        "pattern_key": f"plugin_rule:{directive['rule_key']}",
+        "pattern_keys": [f"plugin_rule:{directive['rule_key']}"],
+        "choice": choice,
+        "surface": "cli",
+        **extra,
+    })
+
+
 def captured(order_id="PAY-OATS"):
     return {
         "ok": True,
@@ -95,6 +105,7 @@ def test_approved_purchase_records_the_receipt_once():
     assert directive["action"] == "approve"
     for needle in ("Green Grocer", "$2.55", "8000 cents", "Guard: pass"):
         assert needle in directive["message"]
+    human_approves(ctx, directive)
     result = service.perform_governed(
         ctx, "request_purchase", {"quoteId": "quote_oats"},
         task_id="task", session_id="chat-1", tool_call_id="call-1",
@@ -125,6 +136,66 @@ def test_handler_without_a_grant_does_not_pay():
     assert result["sent"] is False
     assert "did not approve" in result["error"]
     assert "request_purchase" not in [name for name, _args in purse.calls]
+
+
+def test_approval_without_a_person_does_not_pay():
+    """YOLO, approvals off, cron approve mode, and saved rules skip the prompt. Smart mode is a model."""
+    outcomes = [
+        None,  # Hermes approved with no prompt, so no post_approval_response fired
+        {"choice": "smart_approve", "decided_by": "aux_llm", "surface": "smart"},
+        {"choice": "deny"},
+        {"choice": "timeout"},
+        {"choice": "cancelled"},
+    ]
+    for outcome in outcomes:
+        ctx = ctx_with_quote()
+        purse = Purse(purchase=captured())
+        directive = service.on_pre_tool(
+            ctx, "request_purchase", {"quoteId": "quote_oats"},
+            task_id="task", session_id="chat-1", env=ATTENDED, argv=[], client=purse, now=100,
+        )
+        assert directive["action"] == "approve"
+        if outcome is not None:
+            human_approves(ctx, directive, **outcome)
+        result = service.perform_governed(
+            ctx, "request_purchase", {"quoteId": "quote_oats"},
+            task_id="task", session_id="chat-1", env=ATTENDED, argv=[], client=purse, now=101,
+        )
+        assert result["sent"] is False
+        assert "request_purchase" not in [name for name, _args in purse.calls]
+        assert ledger.spent_cents(ctx.state, "chat-1") == 0
+
+
+def test_saved_always_answer_cannot_cover_the_next_payment():
+    ctx = ctx_with_quote()
+    purse = Purse(purchase=captured())
+    first = service.on_pre_tool(
+        ctx, "request_purchase", {"quoteId": "quote_oats"},
+        task_id="task", session_id="chat-1", env=ATTENDED, argv=[], client=purse, now=100,
+    )
+    human_approves(ctx, first, choice="always")
+    second = service.on_pre_tool(
+        ctx, "request_purchase", {"quoteId": "quote_oats"},
+        task_id="task", session_id="chat-1", env=ATTENDED, argv=[], client=purse, now=110,
+    )
+    assert first["rule_key"] != second["rule_key"]
+
+
+def test_other_approval_prompts_are_ignored():
+    ctx = ctx_with_quote()
+    purse = Purse(purchase=captured())
+    directive = service.on_pre_tool(
+        ctx, "request_purchase", {"quoteId": "quote_oats"},
+        task_id="task", session_id="chat-1", env=ATTENDED, argv=[], client=purse, now=100,
+    )
+    service.on_approval_response(ctx, {"pattern_key": "rm_rf", "choice": "once"})
+    service.on_approval_response(ctx, {"pattern_key": "plugin_rule:other:abc", "choice": "once"})
+    result = service.perform_governed(
+        ctx, "request_purchase", {"quoteId": "quote_oats"},
+        task_id="task", session_id="chat-1", env=ATTENDED, argv=[], client=purse, now=101,
+    )
+    assert result["sent"] is False
+    assert directive["action"] == "approve"
 
 
 def test_blocked_merchant_guard_kill_and_limit_do_not_pay():
@@ -243,11 +314,12 @@ def test_passkey_poll_times_out_without_recording_spend():
 
     purse = Holding(purchase=pending, budget=[{"name": "Grocer", "remainingCents": 8000, "allowanceCents": 8000}])
     clock = Clock()
-    service.on_pre_tool(
+    directive = service.on_pre_tool(
         ctx, "request_purchase", {"quoteId": "quote_oats"},
         task_id="t", session_id="s", tool_call_id="hold-1",
         env=ATTENDED, argv=[], client=purse, now=10,
     )
+    human_approves(ctx, directive)
     result = service.perform_governed(
         ctx, "request_purchase", {"quoteId": "quote_oats"},
         task_id="t", session_id="s", tool_call_id="hold-1",
@@ -370,8 +442,12 @@ def test_registration_matches_the_manifest_and_source_stays_clean():
     for name in schemas.TOOL_NAMES:
         assert f"  - {name}" in text
     assert "pre_tool_call" in text
-    assert ctx.hooks[0][0] == "pre_tool_call"
-    assert ctx.hooks[0][1].__code__.co_flags & 0x08  # accepts **kwargs
+    assert "post_approval_response" in text
+    assert [hook[0] for hook in ctx.hooks] == ["pre_tool_call", "post_approval_response"]
+    for _name, callback, _kwargs in ctx.hooks:
+        assert callback.__code__.co_flags & 0x08  # accepts **kwargs
+    catalog = (ROOT / "catalog" / "agentpurse.yaml").read_text()
+    assert "    - post_approval_response" in catalog
     assert ctx.commands[0][0] == "purse"
     assert ctx.skills and ctx.skills[0][0] == "shop"
 

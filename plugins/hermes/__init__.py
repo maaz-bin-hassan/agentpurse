@@ -6,7 +6,7 @@ from pathlib import Path
 
 from . import schemas, tools
 from .commands import handle as handle_purse
-from .service import on_pre_tool, public_error
+from .service import on_approval_response, on_pre_tool, public_error
 
 
 def _before_tool(tool_name, args=None, task_id="", **kwargs):
@@ -29,6 +29,17 @@ def _before_tool(tool_name, args=None, task_id="", **kwargs):
         return {"action": "block", "message": f"AgentPurse could not check this payment, so it was not sent. {public_error(exc)}"}
 
 
+def _after_approval(**kwargs) -> None:
+    """Observer for Hermes' approval prompt. Marks an AgentPurse grant human-approved. Never raises."""
+    try:
+        ctx = tools._RUNTIME.get("ctx")
+        if ctx is not None:
+            on_approval_response(ctx, kwargs)
+    except Exception:
+        return None
+    return None
+
+
 def register(ctx) -> None:
     tools.bind(ctx)
     for schema in schemas.TOOLS:
@@ -40,6 +51,7 @@ def register(ctx) -> None:
             description=schema["description"],
         )
     ctx.register_hook("pre_tool_call", _before_tool)
+    ctx.register_hook("post_approval_response", _after_approval)
     ctx.register_command(
         "purse",
         lambda raw_args, **kwargs: handle_purse(ctx, raw_args, **kwargs),

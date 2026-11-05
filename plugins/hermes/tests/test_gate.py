@@ -106,6 +106,7 @@ def test_unattended_reasons_fail_closed():
         ({"HERMES_KANBAN_TASK": "1"}, "unattended worker"),
         ({"HERMES_SESSION_PLATFORM": "webhook", "HERMES_EXEC_ASK": "1"}, "webhook"),
         ({"HERMES_YOLO": "1", "HERMES_INTERACTIVE": "1"}, "YOLO"),
+        ({"HERMES_YOLO_MODE": "1", "HERMES_INTERACTIVE": "1"}, "YOLO"),
     ]
     for env, needle in cases:
         attended, reason = attendance.classify(env)
@@ -122,6 +123,8 @@ def test_interactive_surfaces_can_be_asked():
     assert attendance.classify({"HERMES_SESSION_PLATFORM": "desktop"})[0] is True
     assert attendance.classify({"HERMES_SESSION_PLATFORM": "api_server", "HERMES_EXEC_ASK": "1"})[0] is True
     assert attendance.classify({"HERMES_SESSION_PLATFORM": "api_server"})[0] is False
+    assert attendance.classify({"HERMES_SESSION_SOURCE": "desktop"})[0] is True
+    assert attendance.classify({"HERMES_SESSION_SOURCE": "tui"})[0] is True
     attended, reason = attendance.classify(ATTENDED, argv=["hermes", "--yolo"])
     assert attended is False
     assert "--yolo" in reason
@@ -131,6 +134,13 @@ def test_watch_prompt_says_there_is_no_second_approval():
     directive = decide(tool_name="watch_price", preview=preview(guard="pending", quote_id=""))
     assert directive["action"] == "approve"
     assert "second prompt" in directive["message"]
+
+
+def test_rule_keys_are_unique_per_attempt():
+    first = decide(nonce="call-1|a")["rule_key"]
+    second = decide(nonce="call-1|b")["rule_key"]
+    assert first.startswith("agentpurse:") and second.startswith("agentpurse:")
+    assert first != second
 
 
 def test_other_tools_are_not_gated():

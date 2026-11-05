@@ -11,16 +11,19 @@ import json
 import re
 import time
 import urllib.parse
+import uuid
 from dataclasses import dataclass
 
 from .attendance import classify, current_argv, session_env
 from .client import McpClient, McpError, normalize_base_url
-from .gate import GOVERNED, Preview, decide
+from .gate import GOVERNED, RULE_PREFIX, Preview, decide
 from .ledger import (
-    clear_grant,
+    clear_grants,
+    drop_grant,
     get_quote,
     issue_grant,
     killed as kill_flag,
+    mark_human,
     merchant as cached_merchant,
     record_purchase,
     remember_merchants,
@@ -205,7 +208,7 @@ def on_pre_tool(
     clock = now if now is not None else time.time()
     chat = chat_id(task_id, session_id)
     if kill_flag(state) or not attended:
-        clear_grant(state)
+        clear_grants(state)
         return decide(
             tool_name=tool_name,
             killed=kill_flag(state),
@@ -232,9 +235,10 @@ def on_pre_tool(
         preview_error=error,
         spent_cents=spent_cents(state, chat),
         spend_limit_cents=config.spend_limit_cents,
+        nonce=f"{tool_call_id}|{uuid.uuid4().hex}",
     )
     if directive and directive.get("action") == "approve" and preview is not None:
-        issue_grant(state, {
+        issue_grant(state, directive["rule_key"], {
             "fingerprint": preview.fingerprint,
             "session_id": chat,
             "tool_name": tool_name,
@@ -243,10 +247,37 @@ def on_pre_tool(
             "merchant": preview.merchant,
             "quote_id": preview.quote_id,
             "issued_at": clock,
-        })
-    else:
-        clear_grant(state)
+        }, now=clock)
     return directive
+
+
+HUMAN_CHOICES = frozenset({"once", "session", "always"})
+
+
+def on_approval_response(ctx, kwargs: dict) -> None:
+    """Mark a grant human-approved only when a person, not a model or a bypass, said yes.
+
+    Hermes fires post_approval_response only after a real prompt. YOLO, approvals off,
+    cron or single-query auto-approve, and saved allowlist answers skip the prompt, so
+    their grants stay unapproved and the handler refuses to spend.
+    """
+    keys = []
+    primary = kwargs.get("pattern_key")
+    if isinstance(primary, str):
+        keys.append(primary)
+    extra = kwargs.get("pattern_keys")
+    if isinstance(extra, list):
+        keys.extend(key for key in extra if isinstance(key, str))
+    rules = {key[len("plugin_rule:"):] for key in keys if key.startswith(f"plugin_rule:{RULE_PREFIX}")}
+    if not rules:
+        return
+    choice = str(kwargs.get("choice") or "").strip().lower()
+    by_model = kwargs.get("decided_by") == "aux_llm" or str(kwargs.get("surface") or "") == "smart"
+    for rule in rules:
+        if choice in HUMAN_CHOICES and not by_model:
+            mark_human(ctx.state, rule, choice)
+        else:
+            drop_grant(ctx.state, rule)
 
 
 def invoke_tool(ctx, name: str, args: dict, *, task_id: str = "", session_id: str = "", tool_call_id: str = "", env: dict | None = None, argv: list[str] | None = None, client=None, now: float | None = None) -> object:
@@ -277,7 +308,7 @@ def perform_governed(ctx, tool_name: str, args: dict, *, task_id: str, session_i
     chat = chat_id(task_id, session_id)
     attended, reason = classify(env if env is not None else session_env(), argv=current_argv() if argv is None else argv)
     if kill_flag(state) or not attended:
-        clear_grant(state)
+        clear_grants(state)
         directive = decide(
             tool_name=tool_name,
             killed=kill_flag(state),
@@ -292,7 +323,6 @@ def perform_governed(ctx, tool_name: str, args: dict, *, task_id: str, session_i
     active = client or open_client(ctx, hook=False)
     preview, error = resolve_preview(active, state, tool_name, args, now=clock)
     if error or preview is None:
-        clear_grant(state)
         return {"ok": False, "error": error or "The payment was not sent.", "sent": False}
     directive = decide(
         tool_name=tool_name,
@@ -305,7 +335,6 @@ def perform_governed(ctx, tool_name: str, args: dict, *, task_id: str, session_i
         spend_limit_cents=config.spend_limit_cents,
     )
     if not directive or directive.get("action") != "approve":
-        clear_grant(state)
         return {"ok": False, "error": (directive or {}).get("message", "The payment was not sent."), "sent": False}
     grant, grant_error = take_grant(
         state,
@@ -332,8 +361,6 @@ def perform_governed(ctx, tool_name: str, args: dict, *, task_id: str, session_i
         result = dict(result)
         result["hermes"] = _hermes_note(state, chat, config, settled=status)
         return result
-    if not attended:
-        return _hold_result(result, config, timed_out=False, stopped="No approver is available to wait for this signature.")
     outcome = _poll_hold(active, state, config, result, sleeper=sleeper, monotonic_fn=monotonic_fn)
     if _intent_status(outcome) == "captured":
         _note_capture(state, chat, outcome)
@@ -618,7 +645,7 @@ def _hermes_note(state, chat: str, config: Config, *, settled: str) -> dict:
         "sandbox": True,
         "retailer_order": False,
         "note": "PayPal sandbox only. No retailer order was placed.",
-        "remaining_display": format_cents(spent) if spent is not None else "",
+        "chat_spent_display": format_cents(spent) if spent is not None else "",
     }
 
 

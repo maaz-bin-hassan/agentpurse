@@ -34,6 +34,7 @@ capabilities:
     - list_receipts
   provides_hooks:
     - pre_tool_call
+    - post_approval_response
   provides_middleware: []
   requires_env:
     - AGENTPURSE_API_KEY

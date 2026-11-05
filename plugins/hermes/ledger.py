@@ -15,7 +15,8 @@ QUOTES = "quotes"
 MERCHANTS = "merchants"
 SESSIONS = "sessions"
 KILLED = "killed"
-GRANT = "approval_grant"
+GRANTS = "approval_grants"
+MAX_GRANTS = 8
 MAX_QUOTES = 40
 MAX_PURCHASES = 20
 GRANT_TTL_S = 600
@@ -140,12 +141,49 @@ def record_purchase(
     return updated
 
 
-def issue_grant(state: State, grant: dict) -> None:
-    state.set(GRANT, grant)
+
+def _grants(state: State) -> dict:
+    grants = _load(state, GRANTS, {})
+    return grants if isinstance(grants, dict) else {}
 
 
-def clear_grant(state: State) -> None:
-    state.set(GRANT, None)
+def _fresh(row: dict, now: float) -> bool:
+    issued = row.get("issued_at")
+    if isinstance(issued, bool) or not isinstance(issued, (int, float)):
+        return False
+    return now - float(issued) <= GRANT_TTL_S
+
+
+def issue_grant(state: State, rule_key: str, grant: dict, *, now: float) -> None:
+    """Store a proposed grant. It cannot spend until Hermes reports that a person approved it."""
+    grants = {key: row for key, row in _grants(state).items() if isinstance(row, dict) and _fresh(row, now)}
+    grants[rule_key] = {**grant, "human": False}
+    if len(grants) > MAX_GRANTS:
+        ordered = sorted(grants.items(), key=lambda item: item[1].get("issued_at", 0))
+        grants = dict(ordered[-MAX_GRANTS:])
+    state.set(GRANTS, grants)
+
+
+def mark_human(state: State, rule_key: str, choice: str) -> bool:
+    """Record that a person answered Hermes' prompt for this grant with an approval."""
+    grants = _grants(state)
+    row = grants.get(rule_key)
+    if not isinstance(row, dict):
+        return False
+    grants[rule_key] = {**row, "human": True, "choice": choice}
+    state.set(GRANTS, grants)
+    return True
+
+
+def drop_grant(state: State, rule_key: str) -> None:
+    grants = _grants(state)
+    if rule_key in grants:
+        grants.pop(rule_key)
+        state.set(GRANTS, grants)
+
+
+def clear_grants(state: State) -> None:
+    state.set(GRANTS, {})
 
 
 def take_grant(
@@ -157,20 +195,30 @@ def take_grant(
     tool_call_id: str,
     now: float,
 ) -> tuple[dict | None, str]:
-    """Consume the one-time grant. A missing or mismatched grant never spends."""
-    grant = state.get(GRANT, None)
-    state.set(GRANT, None)
-    if not isinstance(grant, dict):
+    """Consume the one-time grant. A missing, mismatched, or machine-approved grant never spends."""
+    grants = _grants(state)
+    match_key = ""
+    for key, row in grants.items():
+        if not isinstance(row, dict):
+            continue
+        if row.get("fingerprint") != fingerprint or row.get("session_id") != session_id or row.get("tool_name") != tool_name:
+            continue
+        granted_call = row.get("tool_call_id") if isinstance(row.get("tool_call_id"), str) else ""
+        if granted_call and tool_call_id and granted_call != tool_call_id:
+            continue
+        if not match_key or row.get("human") is True:
+            match_key = key
+    if not match_key:
         return None, "Hermes did not approve this payment, so it was not sent."
-    if grant.get("fingerprint") != fingerprint or grant.get("session_id") != session_id or grant.get("tool_name") != tool_name:
-        return None, "The approval does not match this payment, so it was not sent."
-    granted_call = grant.get("tool_call_id") if isinstance(grant.get("tool_call_id"), str) else ""
-    if granted_call and tool_call_id and granted_call != tool_call_id:
-        return None, "The approval was for a different attempt, so the payment was not sent."
-    issued = grant.get("issued_at")
-    if isinstance(issued, bool) or not isinstance(issued, (int, float)):
-        return None, "The approval record is unreadable, so the payment was not sent."
-    if now - float(issued) > GRANT_TTL_S:
+    grant = grants.pop(match_key)
+    state.set(GRANTS, grants)
+    if grant.get("human") is not True:
+        return None, (
+            "Hermes let this payment through without asking a person (YOLO, approvals off, smart approval, "
+            "a saved rule, or an unattended auto-approve). AgentPurse spends only after you approve the "
+            "prompt yourself, so it was not sent."
+        )
+    if not _fresh(grant, now):
         return None, "The approval expired before the payment was sent. Ask again."
     amount = as_cents(grant.get("amount_cents"), positive=True)
     merchant_name = grant.get("merchant")

@@ -48,6 +48,8 @@ _SESSION_NAMES = (
     "HERMES_GATEWAY_SESSION",
     "HERMES_EXEC_ASK",
     "HERMES_YOLO",
+    "HERMES_YOLO_MODE",
+    "HERMES_SESSION_SOURCE",
 )
 
 
@@ -64,7 +66,7 @@ def classify(env: dict[str, str], *, platform: str = "", argv: list[str] | None 
             "Hermes was started with --yolo, which skips approval prompts. "
             "AgentPurse will not spend that way. Start Hermes without --yolo."
         )
-    if _truthy(env.get("HERMES_YOLO")):
+    if _truthy(env.get("HERMES_YOLO_MODE")) or _truthy(env.get("HERMES_YOLO")):
         return False, "YOLO is on for this session. AgentPurse will not spend without an approval prompt."
     if _truthy(env.get("HERMES_CRON_SESSION")):
         return False, "This run is a cron job. Nobody is here to approve a payment, so it was not sent."
@@ -72,7 +74,7 @@ def classify(env: dict[str, str], *, platform: str = "", argv: list[str] | None 
         return False, "This run is single-query (-q). Nobody is here to approve a payment, so it was not sent."
     if _truthy(env.get("HERMES_KANBAN_TASK")) or _truthy(env.get("HERMES_KANBAN")):
         return False, "This run is an unattended worker. The payment was not sent."
-    surface = (platform or env.get("HERMES_SESSION_PLATFORM") or "").strip().lower()
+    surface = (platform or env.get("HERMES_SESSION_PLATFORM") or env.get("HERMES_SESSION_SOURCE") or "").strip().lower()
     if surface in UNATTENDED_PLATFORMS:
         return False, f"This session is on {surface}, which cannot show an approval prompt. The payment was not sent."
     interactive = _truthy(env.get("HERMES_INTERACTIVE"))
