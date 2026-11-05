@@ -23,7 +23,7 @@ export async function AuthPage({ mode, next }: { mode: AuthMode; next?: string }
           </div>
         )}
         <p className="mt-6 text-center text-sm text-muted">
-          Just looking? <Link href="/purses/purse_maaz">Open the demo purse</Link>, no account needed.
+          New to AgentPurse? <Link href="/#video">Watch the demo video</Link> or <Link href="/tutorial">read the tutorial</Link>.
         </p>
       </div>
     </main>

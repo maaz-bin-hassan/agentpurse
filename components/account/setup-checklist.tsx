@@ -49,11 +49,11 @@ export function SetupChecklist({
       body:
         paypalMode === "live"
           ? "You sign in at PayPal once. PayPal saves your wallet; AgentPurse keeps only a token and never holds money. This site uses the PayPal sandbox, so use a sandbox account."
-          : "This copy runs on mock PayPal. Linking is instant and no money moves.",
+          : "This copy runs in test mode. Linking is instant and no money moves.",
       done: linked,
       action: linked ? null : (
         <button type="button" className="btn" disabled={pending} onClick={() => void linkPaypal()}>
-          {paypalMode === "live" ? "Sign in with PayPal" : "Link mock PayPal"}
+          {paypalMode === "live" ? "Sign in with PayPal" : "Link PayPal"}
         </button>
       ),
     },

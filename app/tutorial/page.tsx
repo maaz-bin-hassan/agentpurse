@@ -55,7 +55,7 @@ export default async function TutorialPage() {
       {paypalMode() === "live" ? (
         <p className="mt-4 rounded-lg border border-line bg-card px-4 py-3 text-sm">This site runs on the PayPal sandbox. Use a PayPal sandbox account; no real money moves.</p>
       ) : (
-        <p className="mt-4 rounded-lg border border-line bg-card px-4 py-3 text-sm">This copy runs on mock PayPal. Linking is instant and no money moves.</p>
+        <p className="mt-4 rounded-lg border border-line bg-card px-4 py-3 text-sm">This copy runs in test mode. Linking is instant and no money moves.</p>
       )}
 
       <section className="mt-8" aria-label="Demo video">
@@ -83,7 +83,7 @@ export default async function TutorialPage() {
 
       <div className="mt-12 flex flex-wrap gap-3">
         <Link className="btn" href="/signup">Create your purse</Link>
-        <Link className="btn secondary" href="/purses/purse_maaz">Try the demo first</Link>
+        <Link className="btn secondary" href="/login">Sign in</Link>
       </div>
     </main>
   );

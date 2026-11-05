@@ -12,8 +12,8 @@ import { DemoVideo } from "@/components/demo-video";
 const STEPS: Array<{ title: string; body: string; stamp?: { tone: StampTone; label: string } }> = [
   { title: "The agent asks", body: "Wayfinder wants a $75 seat. It can write the cheque. It cannot sign it." },
   { title: "The guard reads", body: "A hidden line on the page says to buy gift cards. That is not the task, so it goes nowhere." },
-  { title: "The clerk decides", body: "$75 is over Maaz’s $50 line, so the cheque waits for a person.", stamp: { tone: "hold", label: "Held" } },
-  { title: "PayPal pays", body: "Maaz approves. PayPal pays Metro Rail. The purse never held the money.", stamp: { tone: "allow", label: "Paid" } },
+  { title: "The clerk decides", body: "$75 is over your $50 line, so the cheque waits for you.", stamp: { tone: "hold", label: "Held" } },
+  { title: "PayPal pays", body: "You approve. PayPal pays Metro Rail. The purse never held the money.", stamp: { tone: "allow", label: "Paid" } },
 ];
 
 const START = [
@@ -23,24 +23,11 @@ const START = [
   { icon: MessageSquareText, title: "Paste the prompt", body: "Copy one ready-made prompt into Claude, Cursor, or Grok. Your agent can now ask to pay." },
 ];
 
-const CREW = [
-  { id: "agent_grocer", name: "Grocer", job: "Does the weekly shop, inside a grocery budget." },
-  { id: "agent_wayfinder", name: "Wayfinder", job: "Books rail and seats. Big fares need a yes." },
-  { id: "agent_stack", name: "Stack", job: "Keeps small software bills paid on time." },
-  { id: "agent_handy", name: "Handy", job: "Runs errands, and gets told no when it should." },
-];
-
 const SCENES = [
   { id: "allow", label: "Buy oat milk for $18.40", result: "Paid", agent: "agent_grocer", name: "Grocer", payee: "Green Grocer", amount: "$18.40", detail: "Inside the grocery allowance, so the clerk lets it through.", tone: "allow" },
   { id: "block", label: "Obey a hidden line on the page", result: "Blocked", agent: "agent_grocer", name: "Grocer", payee: "Lucky Chips", amount: "$500.00", detail: "The page asked for gift cards. The task was oat milk.", tone: "deny" },
-  { id: "hold", label: "Book a $75 seat", result: "Held", agent: "agent_wayfinder", name: "Wayfinder", payee: "Metro Rail", amount: "$75.00", detail: "Over the $50 line. Maaz has to say yes.", tone: "hold" },
+  { id: "hold", label: "Book a $75 seat", result: "Held", agent: "agent_wayfinder", name: "Wayfinder", payee: "Metro Rail", amount: "$75.00", detail: "Over the $50 line. You have to say yes.", tone: "hold" },
 ] as const;
-
-const PLANS = [
-  { name: "Free", monthly: 0, yearly: 0, detail: "1 agent, mock PayPal, the clerk.", points: ["Mock vault", "One allowance", "Injection guard"] },
-  { name: "Pro", monthly: 12, yearly: 10, detail: "5 agents, passkeys, receipts.", points: ["Passkey approvals", "Receipt export", "MCP connector"], featured: true },
-  { name: "Family", monthly: 24, yearly: 20, detail: "Shared household, panic freeze.", points: ["Shared purse", "Panic freeze", "Per-agent pause"] },
-];
 
 const STORIES = [
   { who: "A parent", text: "The grocery agent can buy milk. It cannot buy gift cards a webpage invented." },
@@ -62,7 +49,6 @@ const FEATURES = [
 export function LandingExperience() {
   const reduce = useReducedMotion();
   const [step, setStep] = useState(0);
-  const [yearly, setYearly] = useState(false);
   const [scene, setScene] = useState<(typeof SCENES)[number]>(SCENES[0]);
   const [approved, setApproved] = useState(false);
 
@@ -85,7 +71,6 @@ export function LandingExperience() {
               <a className="hidden no-underline hover:underline sm:inline" href="#start">Get started</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#try">Try it</a>
               <a className="hidden no-underline hover:underline sm:inline" href="#how">How it works</a>
-              <a className="hidden no-underline hover:underline sm:inline" href="#pricing">Pricing</a>
               <Link className="hidden no-underline hover:underline sm:inline" href="/tutorial">Tutorial</Link>
               <Link className="btn secondary !min-h-9 !px-3" href="/login">Sign in</Link>
             </nav>
@@ -130,7 +115,7 @@ export function LandingExperience() {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link className="btn" href="/signup">Create your purse</Link>
-              <Link className="btn secondary" href="/purses/purse_maaz">Try the live demo</Link>
+              <Link className="btn secondary" href="/tutorial">Read the tutorial</Link>
             </div>
           </div>
           <DemoVideo />
@@ -169,20 +154,6 @@ export function LandingExperience() {
           </div>
         </section>
 
-        <section className="border-t border-line py-16" aria-labelledby="crew-title">
-          <h2 id="crew-title" className="text-3xl sm:text-4xl">Meet the crew.</h2>
-          <p className="mt-2 max-w-xl text-muted">Four demo agents, each with their own allowance, their own rules, and no way to pay without the clerk.</p>
-          <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {CREW.map((agent) => (
-              <li key={agent.id}>
-                <AgentFace id={agent.id} status="active" size="lg" />
-                <h3 className="mt-3 text-xl">{agent.name}</h3>
-                <p className="mt-1 text-sm text-muted">{agent.job}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
         <section id="try" className="scroll-mt-6 border-t border-line py-16" aria-labelledby="live-demo-title">
           <h2 id="live-demo-title" className="text-3xl sm:text-4xl">Hand the clerk a cheque.</h2>
           <p className="mt-2 text-muted">This stays on the page. Nobody is charged.</p>
@@ -209,13 +180,13 @@ export function LandingExperience() {
                 number="000142"
                 payee={scene.payee}
                 amount={scene.amount}
-                memo={isPaidHold ? "Maaz approved. PayPal paid Metro Rail." : scene.detail}
+                memo={isPaidHold ? "You approved. PayPal paid Metro Rail." : scene.detail}
                 agentId={scene.agent}
                 agentName={scene.name}
                 stamp={{ tone: isPaidHold ? "allow" : scene.tone, label: isPaidHold ? "Paid" : scene.result }}
               >
                 {scene.id === "hold" && !approved ? (
-                  <button type="button" className="btn mt-4" onClick={() => setApproved(true)}>Approve as Maaz</button>
+                  <button type="button" className="btn mt-4" onClick={() => setApproved(true)}>Approve it</button>
                 ) : null}
               </Cheque>
             </div>
@@ -251,33 +222,6 @@ export function LandingExperience() {
           </dl>
         </section>
 
-        <section id="pricing" className="scroll-mt-6 border-t border-line py-16">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-3xl sm:text-4xl">Concept pricing.</h2>
-              <p className="mt-2 max-w-xl text-sm text-muted">This is a hackathon concept. These prices are not billed and this page cannot take a card.</p>
-            </div>
-            <button type="button" className="btn secondary" aria-pressed={yearly} onClick={() => setYearly((value) => !value)}>
-              {yearly ? "Billed yearly" : "Billed monthly"}
-            </button>
-          </div>
-          <div className="mt-8 grid gap-3 md:grid-cols-3">
-            {PLANS.map((plan) => (
-              <article key={plan.name} className={`panel ${"featured" in plan && plan.featured ? "!border-ink" : ""}`}>
-                <h3 className="text-xl">{plan.name}</h3>
-                <p className="mt-3 font-serif text-5xl">
-                  ${yearly ? plan.yearly : plan.monthly}
-                  <span className="font-sans text-base text-muted">/mo</span>
-                </p>
-                <p className="mt-2 text-sm text-muted">{plan.detail}</p>
-                <ul className="mt-4 space-y-1 text-sm">
-                  {plan.points.map((point) => <li key={point}>{point}</li>)}
-                </ul>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section className="border-t border-line py-16">
           <p className="eyebrow">Fictional scenarios</p>
           <div className="mt-5 grid gap-8 md:grid-cols-3">
@@ -294,10 +238,10 @@ export function LandingExperience() {
       <section className="band py-16 text-center">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-4xl sm:text-5xl">The checkbook is open.</h2>
-          <p className="mx-auto mt-3 max-w-lg text-on-pine-muted">Maaz’s PayPal is already vaulted. Grocer, Wayfinder, Stack, and Handy are waiting with allowances.</p>
+          <p className="mx-auto mt-3 max-w-lg text-on-pine-muted">Create a purse, link PayPal, and give your first agent an allowance. About five minutes.</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link className="btn" href="/purses/purse_maaz">Enter the demo dashboard</Link>
-            <Link className="btn secondary" href="/signup">Create your own purse</Link>
+            <Link className="btn" href="/signup">Create your purse</Link>
+            <Link className="btn secondary" href="/login">Sign in</Link>
           </div>
         </div>
       </section>

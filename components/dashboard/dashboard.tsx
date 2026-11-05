@@ -256,7 +256,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
               ) : null}
             </div>
             <div className="max-w-sm text-sm text-muted sm:text-right">
-              <p className={`stamp ${paypalMode === "live" ? "allow" : "quiet"}`}>{paypalMode === "live" ? "PayPal sandbox" : "Mock PayPal"}</p>
+              <p className={`stamp ${paypalMode === "live" ? "allow" : "quiet"}`}>{paypalMode === "live" ? "PayPal sandbox" : "Test mode"}</p>
               <p className="mt-2" data-tour="paypal">
                 {vault?.status === "vaulted" ? "Linked" : "Not linked"} to PayPal{vault?.status === "vaulted" && vault.payerEmail ? ` as ${vault.payerEmail}` : ""} · <span className="money text-xs">{vault?.paymentTokenId ?? "no payment token"}</span> · AgentPurse does not hold a balance.
               </p>
