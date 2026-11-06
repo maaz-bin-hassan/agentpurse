@@ -17,6 +17,15 @@ import {
   searchMerchants,
 } from "@/src/db/repository";
 import type { Sql } from "@/src/db/sql";
+import {
+  TOOLKIT_MCP_TOOLS,
+  blockedToolkitMessage,
+  createToolkitRunner,
+  isBlockedToolkitTool,
+  isToolkitReadTool,
+  runToolkitReadTool,
+  type ToolkitRunner,
+} from "@/src/paypal/toolkit";
 import { requestPurchase } from "@/src/server/actions";
 import { checkPrice, createCatalogQuote, findAlternatives, payCatalogQuote, productDetail, searchCatalog } from "@/src/server/shop";
 import { cancelWatch, createWatch, householdWatches } from "@/src/server/watches";
@@ -131,7 +140,14 @@ export const MCP_TOOLS = [
     description: "List PayPal receipts for this purse.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
+  // PayPal Agent Toolkit, read-only. Money-moving toolkit tools are not listed and are refused.
+  ...TOOLKIT_MCP_TOOLS,
 ] as const;
+
+export interface McpDeps {
+  /** Override the PayPal Agent Toolkit runner, for tests. */
+  toolkit?: (actor: McpActor) => ToolkitRunner;
+}
 
 function textResult(value: unknown) {
   return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] };
@@ -165,7 +181,17 @@ async function budget(sql: Sql, actor: McpActor) {
   );
 }
 
-export async function callTool(sql: Sql, actor: McpActor, name: string, args: Record<string, unknown>) {
+export async function callTool(sql: Sql, actor: McpActor, name: string, args: Record<string, unknown>, deps: McpDeps = {}) {
+  // The wall: a PayPal Agent Toolkit tool that is not on the read allowlist never reaches the toolkit.
+  if (isBlockedToolkitTool(name)) return { isError: true, content: [{ type: "text", text: blockedToolkitMessage(name) }] };
+  if (isToolkitReadTool(name)) {
+    const runner = deps.toolkit ? deps.toolkit(actor) : createToolkitRunner(sql, actor);
+    try {
+      return textResult(await runToolkitReadTool(runner, name, args));
+    } catch (error) {
+      return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "PayPal read failed." }] };
+    }
+  }
   if (name === "search_merchants") {
     const query = typeof args.query === "string" ? args.query : "";
     const merchants = query ? await searchMerchants(sql, query) : await listMerchants(sql);
@@ -261,7 +287,7 @@ export async function callTool(sql: Sql, actor: McpActor, name: string, args: Re
   throw new Error(`Unknown tool ${name}`);
 }
 
-export async function handleMcpMessage(sql: Sql, actor: McpActor, message: Rpc): Promise<Record<string, unknown> | null> {
+export async function handleMcpMessage(sql: Sql, actor: McpActor, message: Rpc, deps: McpDeps = {}): Promise<Record<string, unknown> | null> {
   if (message.jsonrpc !== "2.0") {
     return { jsonrpc: "2.0", id: message.id ?? null, error: { code: -32600, message: "Invalid Request" } };
   }
@@ -285,7 +311,7 @@ export async function handleMcpMessage(sql: Sql, actor: McpActor, message: Rpc):
     const name = String(params.name ?? "");
     const args = (params.arguments as Record<string, unknown> | undefined) ?? {};
     try {
-      const result = await callTool(sql, actor, name, args);
+      const result = await callTool(sql, actor, name, args, deps);
       return { jsonrpc: "2.0", id: message.id, result };
     } catch (error) {
       return { jsonrpc: "2.0", id: message.id, error: { code: -32000, message: error instanceof Error ? error.message : "Tool failed" } };

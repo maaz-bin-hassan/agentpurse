@@ -36,6 +36,7 @@ paypal-orders-v2
 paypal-vault
 paypal-webhooks
 paypal-sandbox
+paypal-agent-toolkit
 channel3
 mcp
 grok
@@ -126,6 +127,7 @@ PayPal (sandbox, live on the hosted demo):
 - Refunds: captures can be refunded from the dashboard.
 - Webhooks: PAYMENT.CAPTURE.COMPLETED and PAYMENT.CAPTURE.REFUNDED events are signature-verified before they become receipts.
 - Revoke: the kill switch deletes the vault payment token at PayPal.
+- PayPal Agent Toolkit (@paypal/agent-toolkit): our MCP server exposes the toolkit's get_order, list_transactions, list_disputes, and get_dispute tools to agents, using the agent's own key. Results are limited to that agent's own orders. The toolkit's tools that move money (create_order, pay_order, invoices, refunds, subscriptions, payouts) are switched off in its configuration and refused by name. The agent is told to call request_purchase, so every payment still goes through the intent guard and the clerk.
 
 AI:
 - AI agents are the users of the product: Grok Bot, Claude, and Cursor connect over our MCP server (stdio and streamable HTTP) with their own API key and allowance, search products, and ask to pay in plain English.

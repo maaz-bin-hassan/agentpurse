@@ -40,6 +40,7 @@ What you are judging:
 - **AI** parses sentences, and the guard blocks prompt injection. `AI_MODE=mock` does this locally. The hosted demo runs `AI_MODE=live` with DeepSeek; Groq and Gemini also work. No model can override the clerk or the guard.
 - **Channel3** supplies the catalog: search, product detail, URL lookup, similar products, 90-day price history, and price-change webhooks. The server reads every price, so an agent can never name its own.
 - **MCP** exposes `search_products`, `get_product`, `check_price`, `find_alternatives`, `search_merchants`, `get_quote`, `request_purchase`, `watch_price`, `list_watches`, `cancel_watch`, `get_budget`, and `list_receipts` over stdio and streamable HTTP. Agent API keys are the working sign-in. See `docs/PLUGIN.md`.
+- **PayPal Agent Toolkit** (`@paypal/agent-toolkit`) is behind four read-only MCP tools: `paypal_get_order`, `paypal_list_transactions`, `paypal_list_disputes`, and `paypal_get_dispute`. Each answer is limited to the caller's own orders. The toolkit's money-moving tools (create or pay an order, invoices, refunds, subscriptions, payouts) are switched off in its configuration and refused by name, with a pointer to `request_purchase`, so the guard and the clerk still decide every payment. The package loads only when `PAYPAL_MODE=live`. In mock mode the same four tools read the local ledger. See `src/paypal/toolkit.ts` and `tests/toolkit.test.ts`.
 - **The clerk** is ordinary TypeScript. Allowances, caps, the denylist, pause, and panic are not model opinions.
 
 Three-minute path (`docs/DEMO.md`):

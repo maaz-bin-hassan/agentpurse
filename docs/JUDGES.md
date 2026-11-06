@@ -74,7 +74,7 @@ curl -s https://agentpurse.vercel.app/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"request_purchase","arguments":{"text":"Buy oat milk from Green Grocer for $2.55","originalTask":"Buy oat milk"}}}'
 ```
 
-To list all 12 tools, use `"method":"tools/list"` instead. Demo keys:
+To list all 16 tools, use `"method":"tools/list"` instead. Four come from the **PayPal Agent Toolkit**: `paypal_get_order`, `paypal_list_transactions`, `paypal_list_disputes`, and `paypal_get_dispute`. They only read data. Ask for a toolkit tool that moves money, such as `create_order`, and you are refused and sent to `request_purchase`. Demo keys:
 
 | Agent | Key | Allowance |
 | --- | --- | --- |
@@ -109,6 +109,7 @@ Open http://localhost:3000/purses/purse_maaz and repeat the steps above.
 | Vault v3: delete the payment token (Revoke) | `src/paypal/live.ts` |
 | Orders v2: create with `vault_id`, then capture. The intent id rides in `custom_id` | `src/paypal/live.ts` |
 | Refund a capture | `src/paypal/live.ts` |
+| PayPal Agent Toolkit: read-only tools, money-moving tools refused | `src/paypal/toolkit.ts`, `src/mcp/protocol.ts` |
 | Verify webhook signatures (`PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`) | `src/paypal/live.ts`, `app/api/paypal/webhooks` |
 
 ## Something not working?

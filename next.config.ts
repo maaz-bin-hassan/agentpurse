@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
-  serverExternalPackages: ["pg"],
+  serverExternalPackages: ["pg", "@paypal/agent-toolkit"],
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = config.externals || [];

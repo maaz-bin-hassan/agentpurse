@@ -13,7 +13,7 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 | GitHub About description and topics | Done. Description, homepage, and 10 topics set. | Repo settings |
 | Project uses PayPal and AI | Done. Vault v3, Orders v2, refunds, and webhook verification on the real sandbox. Live AI (DeepSeek) parses intents on the hosted demo. Mock mode needs no keys. | `docs/ARCHITECTURE.md` |
 | Working demo judges can run | Live at https://agentpurse.vercel.app on the PayPal sandbox. `/api/health` reports PayPal, AI, and Channel3 all live. | README **For judges** |
-| Setup and run instructions in the repo | Done. Four commands, no keys. 111 tests pass offline. | README **60-second quickstart** |
+| Setup and run instructions in the repo | Done. Four commands, no keys. 118 tests pass offline. | README **60-second quickstart** |
 | No real money | Done. PayPal runs in the sandbox only. | `docs/DEPLOY.md` |
 | No third-party trademarks in the video without permission | Check the video. Live Channel3 returns real brands and stores (for example Targus, Newegg). Blur them or use the mock catalog in any re-cut. | `docs/DEMO.md` |
 | Best Use of Channel3 | Live search runs on the hosted demo. Price-change webhook delivery still to confirm. | `docs/ARCHITECTURE.md` |

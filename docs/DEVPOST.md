@@ -39,7 +39,7 @@ Above $50, or at a store the agent hasn't used before, the payment becomes a **h
 - **Denials that explain themselves.** Over the allowance, outside the agent's categories, or a blocked store.
 - **Real shopping with Channel3.** Search live offers from real stores and check today's price against 90 days of history. Set a price watch: when the price drops, the agent files a normal request and the clerk rules on it. The server reads every price from Channel3, so an agent can never name its own.
 - **Kill switches.** Pause one agent, panic-freeze every payment, or **Revoke PayPal**, which deletes the vault payment token at PayPal itself.
-- **Any agent, over MCP.** Claude, Cursor, Grok, or any MCP client connects with its own key and gets 12 tools. Only `request_purchase` can lead to a payment, and the clerk still rules on it.
+- **Any agent, over MCP.** Claude, Cursor, Grok, or any MCP client connects with its own key and gets 16 tools, four of them from the **PayPal Agent Toolkit**. Only `request_purchase` can lead to a payment, and the clerk still rules on it.
 
 ## How we built it
 
@@ -49,6 +49,7 @@ Above $50, or at a store the agent hasn't used before, the payment becomes a **h
 - **Refunds** on captures, from the receipts table.
 - **Webhooks.** `PAYMENT.CAPTURE.COMPLETED` and `PAYMENT.CAPTURE.REFUNDED` are signature-verified before they become receipts.
 - **Revoke** deletes the vault payment token at PayPal.
+- **PayPal Agent Toolkit** (`@paypal/agent-toolkit`). Agents get its read-only tools over our MCP server: order details, transactions, and disputes, limited to their own orders. The toolkit tools that move money (create or pay an order, invoices, refunds, subscriptions, payouts) are switched off and refused by name. The agent is sent to `request_purchase`, so PayPal's own agent tools sit behind the guard and the clerk.
 
 **AI**
 - Agents are the users: they connect over our MCP server (protocol 2025-11-25, stdio and streamable HTTP).
@@ -56,7 +57,7 @@ Above $50, or at a store the agent hasn't used before, the payment becomes a **h
 - The intent guard checks the purchase against the user's original task.
 - With no model key, a local parser does the same job, so the repo runs fully offline.
 
-**Stack:** Next.js 15, TypeScript, Postgres on Supabase (SQLite locally), Zod at every boundary, and Vitest with PGlite, so the real Postgres schema runs in tests. Money is integer cents everywhere. The policy engine is a pure function, and every rule got a failing test before its code. That is 111 tests, all offline.
+**Stack:** Next.js 15, TypeScript, Postgres on Supabase (SQLite locally), Zod at every boundary, and Vitest with PGlite, so the real Postgres schema runs in tests. Money is integer cents everywhere. The policy engine is a pure function, and every rule got a failing test before its code. That is 118 tests, all offline.
 
 ## Challenges we ran into
 
@@ -85,7 +86,7 @@ Agentic commerce needs a purse, not a prompt. The PayPal surface that fits agent
 
 ## Built with
 
-Next.js, TypeScript, Node.js, React, Tailwind CSS, Postgres, Supabase, SQLite, PayPal Payment Method Tokens v3, PayPal Orders v2, PayPal webhooks, PayPal sandbox, Channel3, MCP, DeepSeek, Groq, Gemini, Zod, Vitest, Vercel.
+Next.js, TypeScript, Node.js, React, Tailwind CSS, Postgres, Supabase, SQLite, PayPal Agent Toolkit, PayPal Payment Method Tokens v3, PayPal Orders v2, PayPal webhooks, PayPal sandbox, Channel3, MCP, DeepSeek, Groq, Gemini, Zod, Vitest, Vercel.
 
 ## Try it out
 

@@ -18,6 +18,7 @@ The URL in `.mcp.json` is the public demo, `https://agentpurse.vercel.app/mcp`. 
 | `request_purchase` | Clerk allows, holds, or blocks |
 | `get_budget` | Remaining allowance |
 | `list_receipts` | PayPal receipts |
+| `paypal_get_order`, `paypal_list_transactions`, `paypal_list_disputes`, `paypal_get_dispute` | PayPal Agent Toolkit, read-only, limited to this agent's own orders. Toolkit tools that move money are refused. Use `request_purchase` |
 
 The skill at `plugin/agentpurse/skills/buy-with-agentpurse/SKILL.md` tells the assistant to quote first and to stop when the guard blocks.
 
@@ -79,7 +80,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maaz` and `Accept: application/json, text/event-stream` returns the twelve tools. `tests/mcp.test.ts` covers the tool calls. `npm run mcp` is the stdio process for Claude Desktop.
+That is `401`. The same call with `Authorization: Bearer agpk_grocer_demo_maaz` and `Accept: application/json, text/event-stream` returns the sixteen tools. `tests/mcp.test.ts` covers the tool calls. `npm run mcp` is the stdio process for Claude Desktop.
 
 ## Example
 
