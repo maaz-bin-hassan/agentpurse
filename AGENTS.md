@@ -74,7 +74,7 @@ Keep this list honest when a phase lands.
 - [x] Phase 13 — dashboard and injection demo
 - [x] Phase 14 — Grok plugin, deploy docs, submission copy
 - [x] Phase 15 — real PayPal sandbox run: link, charge, hold, refund, and MCP purchase. Webhook delivery still to confirm
-- [ ] Phase 16 — Channel3 shopping and price watches: built and tested on mock data, waiting on a live key run
+- [ ] Phase 16 — Channel3 shopping and price watches: live search runs on the hosted demo (MCP `search_products` returns real offers). Price-change webhook delivery still to confirm
 - [x] Phase 17 — Supabase email and password accounts. `/purses/purse_maaz` stays the public judges' demo; account purses live at `/dashboard`
 - [x] Phase 18 — setup checklist, `/tutorial`, and copy-paste connect prompts per AI client
 - [x] Phase 19 — eight agent templates (`src/domain/templates.ts`), editable before save, keys shown once and rotatable

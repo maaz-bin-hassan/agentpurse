@@ -9,15 +9,17 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 | Rule | Status | Where |
 | --- | --- | --- |
 | Public GitHub repo created after 1 October 2026 | Done. Created 29 October 2026. | This repository |
-| MIT license visible in the repo | Done. `LICENSE` is MIT, copyright 2026 MaAz Khan Hassan. | `LICENSE` |
-| Project uses PayPal and AI | Done. Vault + Orders v2 ran on the real sandbox, plus a guard. Mock mode needs no keys. | `docs/ARCHITECTURE.md` |
-| Working demo judges can run | Live at https://agentpurse.vercel.app on the PayPal sandbox. | README **For judges** |
+| MIT license visible in the repo | Done. `LICENSE` is MIT, and GitHub shows it in the About box. | `LICENSE` |
+| GitHub About description and topics | Not set. The description is empty and there are no topics. Use the suggestion at the bottom of this file. | Repo settings |
+| Project uses PayPal and AI | Done. Vault v3, Orders v2, refunds, and webhook verification on the real sandbox. Live AI (DeepSeek) parses intents on the hosted demo. Mock mode needs no keys. | `docs/ARCHITECTURE.md` |
+| Working demo judges can run | Live at https://agentpurse.vercel.app on the PayPal sandbox. `/api/health` reports PayPal, AI, and Channel3 all live. | README **For judges** |
+| Setup and run instructions in the repo | Done. Four commands, no keys. 111 tests pass offline. | README **60-second quickstart** |
 | No real money | Done. PayPal runs in the sandbox only. | `docs/DEPLOY.md` |
-| Real retailers | Mock catalog uses fictional shops. Live Channel3 shows real ones, so check the rules before showing brands in the video. | `docs/DEMO.md` |
-| Best Use of Channel3 | Channel3 is built in. Live key run is still to do. | `docs/ARCHITECTURE.md` |
-| Video under 3 minutes, no copyrighted music | Not recorded yet. Script and shot list are ready. | `docs/DEMO.md` |
-| List every AI tool used | Done, including Cursor and Grok Bot. | `docs/AI-TOOLS.md` |
-| Sandbox credentials available to judges through 15 December 2026 | Not in the repo, on purpose. | MaAz keeps them |
+| No third-party trademarks in the video without permission | Check the video. Live Channel3 returns real brands and stores (for example Targus, Newegg). Blur them or use the mock catalog in any re-cut. | `docs/DEMO.md` |
+| Best Use of Channel3 | Live search runs on the hosted demo. Price-change webhook delivery still to confirm. | `docs/ARCHITECTURE.md` |
+| Video under 3 minutes, public on YouTube, no copyrighted music | Uploaded: https://youtu.be/-5Y8ftuzQG4. Confirm it is Public (not Unlisted), under 3:00, and that the music is licensed. | `docs/DEMO.md` |
+| List every AI tool used | Done: Cursor, Grok, Claude Code, ElevenLabs, DeepSeek, Groq, Gemini. | `docs/AI-TOOLS.md` |
+| Testing access for judges through 15 December 2026 | The hosted demo needs no login and has a linked sandbox wallet. Client id and secret stay out of the repo and are shared on request. | README **For judges** |
 | Submission form on Devpost | Not submitted. | MaAz |
 
 ## Only MaAz can do these

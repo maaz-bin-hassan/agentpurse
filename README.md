@@ -6,7 +6,7 @@ Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/). Def
 
 ## For judges
 
-Live demo: https://agentpurse.vercel.app. Its badge shows **PayPal sandbox** or **Mock PayPal**. The commands below run the same demo locally. No PayPal account, model key, or Supabase project is required.
+Live demo: https://agentpurse.vercel.app. Demo video (under 3 minutes): https://youtu.be/-5Y8ftuzQG4. The live demo's badge shows **PayPal sandbox** or **Mock PayPal**. The commands below run the same demo locally. No PayPal account, model key, or Supabase project is required.
 
 ### 60-second quickstart
 
@@ -30,12 +30,12 @@ There is no password. In mock mode the browser receives an httpOnly demo session
 | Stack | `agpk_stack_demo_maaz` |
 | Handy | `agpk_handy_demo_maaz` |
 
-Sandbox client id and secret are not in this repo. MaAz keeps those for judges through 15 December 2026. See `docs/SUBMISSION_CHECKLIST.md`.
+Sandbox client id and secret are not in this repo. Judges do not need them: the hosted demo already runs on the PayPal sandbox with a linked sandbox wallet and needs no login. MaAz keeps the credentials through 15 December 2026 and shares them on request. See `docs/SUBMISSION_CHECKLIST.md`.
 
 What you are judging:
 
 - **PayPal** is Payment Method Tokens v3 (save a wallet with no purchase) and Orders v2 charges against the saved wallet (`vault_id`, `custom_id` = intent id), plus refunds and webhook handling. In the sandbox, charges pay the business account that owns the REST app. `src/paypal/live.ts` calls the sandbox only when `PAYPAL_MODE=live`.
-- **AI** parses sentences, and the guard blocks prompt injection. `AI_MODE=mock` does this locally. Groq or Gemini are optional and cannot override the clerk or the guard.
+- **AI** parses sentences, and the guard blocks prompt injection. `AI_MODE=mock` does this locally. The hosted demo runs `AI_MODE=live` with DeepSeek; Groq and Gemini also work. No model can override the clerk or the guard.
 - **Channel3** supplies the catalog: search, product detail, URL lookup, similar products, 90-day price history, and price-change webhooks. The server reads every price, so an agent can never name its own.
 - **MCP** exposes `search_products`, `get_product`, `check_price`, `find_alternatives`, `search_merchants`, `get_quote`, `request_purchase`, `watch_price`, `list_watches`, `cancel_watch`, `get_budget`, and `list_receipts` over stdio and streamable HTTP. Agent API keys are the working sign-in. See `docs/PLUGIN.md`.
 - **The clerk** is ordinary TypeScript. Allowances, caps, the denylist, pause, and panic are not model opinions.
@@ -71,7 +71,7 @@ Copy `.env.example` only if you want to change defaults. Unset means mock.
 | Variable | Default | Role |
 | --- | --- | --- |
 | `PAYPAL_MODE` | `mock` | `live` calls the PayPal sandbox |
-| `AI_MODE` | `mock` | `live` calls Groq or Gemini for intent and policy drafts |
+| `AI_MODE` | `mock` | `live` calls Groq, Gemini, or DeepSeek (`AI_PROVIDER`) for intent and policy drafts |
 | `CHANNEL3_MODE` | `mock` | `live` calls Channel3. Needs `CHANNEL3_API_KEY` |
 | `CHANNEL3_WEBHOOK_SECRET` | unset | Verifies price-change webhooks |
 | `DATABASE_URL` | unset | Postgres (Supabase). Unset uses SQLite |

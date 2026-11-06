@@ -93,6 +93,7 @@ grok
 claude
 groq
 gemini
+deepseek
 next.js
 typescript
 react
@@ -124,14 +125,18 @@ https://github.com/maaz-bin-hassan/agentpurse
 
 Upload in this order:
 
-1. `docs/devpost/gallery-1-hero.png`
+1. `docs/devpost/thumbnail.png`
 2. `docs/devpost/gallery-2-flow.png`
 3. `docs/devpost/gallery-3-guards.png`
 4. Then 3–4 screenshots of your own: the household page, a held cheque, the injection block, and Channel3 shop results.
 
 ## Video demo link
 
-Your YouTube URL (public or unlisted).
+```
+https://youtu.be/-5Y8ftuzQG4
+```
+
+The rules say the video must be publicly visible on YouTube and under 3 minutes. Set it to Public, not Unlisted.
 
 ---
 
@@ -175,7 +180,7 @@ PayPal (sandbox, live on the hosted demo):
 
 AI:
 - AI agents are the users of the product: Grok Bot, Claude, and Cursor connect over our MCP server (stdio and streamable HTTP) with their own API key and allowance, search products, and ask to pay in plain English.
-- Intent parsing: a model (Groq, Llama 3.3 70B, or Google Gemini 2.5 Flash, set with AI_MODE=live) turns the agent's sentence into a structured request. Code validates the JSON and rejects any amount that is not written in the sentence. The hosted demo currently runs the built-in local parser, so it works with no model key.
+- Intent parsing: a model turns the agent's sentence into a structured request. The hosted demo runs AI_MODE=live with DeepSeek (deepseek-chat); Groq (Llama 3.3 70B) and Google Gemini 2.5 Flash are also supported. Code validates the JSON and rejects any amount that is not written in the sentence. With no model key, a built-in local parser does the same job, so the repo runs offline.
 - Intent guard: every purchase is compared with the user's original task, and hidden instructions in pages or listings are blocked.
 
 The AI never moves money. A deterministic clerk in code allows, holds, or denies, and PayPal does the paying.
@@ -240,7 +245,7 @@ The sandbox made it possible to test the full agent payment loop end to end: vau
 **Which AI tools have you leveraged while working on this project?** (add any others you used)
 
 ```
-Claude Code (Anthropic) for pair programming, tests, debugging the live deployment, and building the demo video with Remotion. Grok Bot as an MCP client to run real purchases against the live purse. ElevenLabs for the video voiceover. Groq (Llama 3.3 70B) and Google Gemini 2.5 Flash as the optional live intent-parsing models.
+Cursor (cloud agents on Grok 4.7) and Claude Code (Anthropic) for pair programming, tests, debugging the live deployment, and building the demo video with Remotion. Grok Bot as an MCP client to run real purchases against the live purse. ElevenLabs for the video voiceover. DeepSeek (live on the hosted demo), Groq (Llama 3.3 70B), and Google Gemini 2.5 Flash as the live intent-parsing models.
 ```
 
 **Level of learning / AI value for your career:** you choose.

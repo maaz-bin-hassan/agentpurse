@@ -53,7 +53,7 @@ Real retailer orders. Channel3's checkout is still coming soon, so today PayPal 
 
 ## Built with
 
-Next.js, TypeScript, Node.js, SQLite, Postgres, Supabase, PayPal Payment Method Tokens v3, PayPal Orders v2, Channel3 (search, product detail, lookup, similar, price history, product subscriptions, webhooks), MCP, Zod, Vitest. Optional: Groq, Gemini, Vercel, Render.
+Next.js, TypeScript, Node.js, SQLite, Postgres, Supabase, PayPal Payment Method Tokens v3, PayPal Orders v2, Channel3 (search, product detail, lookup, similar, price history, product subscriptions, webhooks), MCP, Zod, Vitest. Live AI: DeepSeek on the hosted demo, with Groq and Gemini also supported. Hosting: Vercel (Render config included).
 
 ## Try it out
 
