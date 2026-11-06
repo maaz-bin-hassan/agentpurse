@@ -6,6 +6,8 @@ Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/). Def
 
 ## For judges
 
+**Start here: [docs/JUDGES.md](docs/JUDGES.md)** is a 5-minute, click-by-click tour of the hosted demo. It needs no login.
+
 Live demo: https://agentpurse.vercel.app. Demo video (under 3 minutes): https://youtu.be/-5Y8ftuzQG4. The live demo's badge shows **PayPal sandbox** or **Mock PayPal**. The commands below run the same demo locally. No PayPal account, model key, or Supabase project is required.
 
 ### 60-second quickstart
@@ -48,7 +50,7 @@ Three-minute path (`docs/DEMO.md`):
 4. Pause an agent, hit **Panic freeze**, then **Revoke PayPal** (the vault token is deleted).
 5. Call the MCP server with `Authorization: Bearer agpk_grocer_demo_maaz` and ask it to buy oat milk.
 
-Paste-ready submission text is in `docs/DEVPOST.md`. The video script is `docs/DEMO.md`. The rule-by-rule status is `docs/SUBMISSION_CHECKLIST.md`. Deploy notes are in `docs/DEPLOY.md`. AI tools are listed in `docs/AI-TOOLS.md`. The architecture diagram is in `docs/ARCHITECTURE.md`.
+The judge walkthrough is `docs/JUDGES.md`. Paste-ready submission text is in `docs/DEVPOST.md`. The video script is `docs/DEMO.md`. The rule-by-rule status is `docs/SUBMISSION_CHECKLIST.md`. Deploy notes are in `docs/DEPLOY.md`. AI tools are listed in `docs/AI-TOOLS.md`. The architecture diagram is in `docs/ARCHITECTURE.md`.
 
 Suggested GitHub About description: “A purse AI agents spend from. PayPal charges the merchant. The model does not move the money.”
 
