@@ -10,7 +10,7 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 | --- | --- | --- |
 | Public GitHub repo created after 1 October 2026 | Done. Created 29 October 2026. | This repository |
 | MIT license visible in the repo | Done. `LICENSE` is MIT, and GitHub shows it in the About box. | `LICENSE` |
-| GitHub About description and topics | Not set. The description is empty and there are no topics. Use the suggestion at the bottom of this file. | Repo settings |
+| GitHub About description and topics | Done. Description, homepage, and 10 topics set. | Repo settings |
 | Project uses PayPal and AI | Done. Vault v3, Orders v2, refunds, and webhook verification on the real sandbox. Live AI (DeepSeek) parses intents on the hosted demo. Mock mode needs no keys. | `docs/ARCHITECTURE.md` |
 | Working demo judges can run | Live at https://agentpurse.vercel.app on the PayPal sandbox. `/api/health` reports PayPal, AI, and Channel3 all live. | README **For judges** |
 | Setup and run instructions in the repo | Done. Four commands, no keys. 111 tests pass offline. | README **60-second quickstart** |
@@ -20,6 +20,7 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 | Video under 3 minutes, public on YouTube, no copyrighted music | Uploaded: https://youtu.be/-5Y8ftuzQG4. Confirm it is Public (not Unlisted), under 3:00, and that the music is licensed. | `docs/DEMO.md` |
 | List every AI tool used | Done: Cursor, Grok, Claude Code, ElevenLabs, DeepSeek, Groq, Gemini. | `docs/AI-TOOLS.md` |
 | Testing access for judges through 15 December 2026 | The hosted demo needs no login and has a linked sandbox wallet. Client id and secret stay out of the repo and are shared on request. | README **For judges** |
+| Judge walkthrough | Done. Click-by-click tour of the hosted demo. Button labels come from the app source. The MCP call, Channel3 search, and health check were run on the live site. | `docs/JUDGES.md` |
 | Submission form on Devpost | Not submitted. | MaAz |
 
 ## Only MaAz can do these
