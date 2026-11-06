@@ -20,7 +20,7 @@ The repository was created on GitHub on 29 October 2026, after the 1 October 202
 | Video under 3 minutes, public on YouTube, no copyrighted music | Uploaded: https://youtu.be/-5Y8ftuzQG4. Confirm it is Public (not Unlisted), under 3:00, and that the music is licensed. | `docs/DEMO.md` |
 | List every AI tool used | Done: Cursor, Grok, Claude Code, ElevenLabs, DeepSeek, Groq, Gemini. | `docs/AI-TOOLS.md` |
 | Testing access for judges through 15 December 2026 | The hosted demo needs no login and has a linked sandbox wallet. Client id and secret stay out of the repo and are shared on request. | README **For judges** |
-| Judge walkthrough | Done. Click-by-click tour of the hosted demo, checked against the live site. | `docs/JUDGES.md` |
+| Judge walkthrough | Done. Click-by-click tour of the hosted demo. Button labels come from the app source. The MCP call, Channel3 search, and health check were run on the live site. | `docs/JUDGES.md` |
 | Submission form on Devpost | Not submitted. | MaAz |
 
 ## Only MaAz can do these
