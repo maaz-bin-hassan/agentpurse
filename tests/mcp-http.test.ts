@@ -41,5 +41,5 @@ it("rejects an anonymous MCP call and lists tools for Grocer's key", async () =>
   );
   expect(allowed.status).toBe(200);
   const body = await allowed.json();
-  expect(body.result.tools).toHaveLength(12);
+  expect(body.result.tools).toHaveLength(16);
 });

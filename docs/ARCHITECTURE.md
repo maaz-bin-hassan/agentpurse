@@ -65,9 +65,37 @@ Approval re-runs the deny rules before capture.
 
 ## MCP
 
-`src/mcp` implements twelve tools. Shopping is `search_products`, `get_product`, `check_price`, `find_alternatives`, `watch_price`, `list_watches`, and `cancel_watch`. Paying is `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, and `list_receipts`. Stdio is `npm run mcp` and reads `AGENTPURSE_API_KEY`. `POST /mcp` is streamable HTTP (protocol `2025-11-25`): JSON-RPC in, JSON or an accepted notification response out, bearer API key or OAuth access token, Origin rejected when it is present and not allowed.
+`src/mcp` implements sixteen tools. Shopping is `search_products`, `get_product`, `check_price`, `find_alternatives`, `watch_price`, `list_watches`, and `cancel_watch`. Paying is `search_merchants`, `get_quote`, `request_purchase`, `get_budget`, and `list_receipts`. PayPal reads are `paypal_get_order`, `paypal_list_transactions`, `paypal_list_disputes`, and `paypal_get_dispute`, from the PayPal Agent Toolkit (see below). Stdio is `npm run mcp` and reads `AGENTPURSE_API_KEY`. `POST /mcp` is streamable HTTP (protocol `2025-11-25`): JSON-RPC in, JSON or an accepted notification response out, bearer API key or OAuth access token, Origin rejected when it is present and not allowed.
 
 Agent API keys are the working sign-in. Client registration, token exchange, and OAuth metadata exist, but there is no authorization page yet, so a remote OAuth client cannot finish signing in.
+
+## PayPal Agent Toolkit, and the wall
+
+`src/paypal/toolkit.ts` connects PayPal's official Agent Toolkit (`@paypal/agent-toolkit/mcp`, `PayPalMCPToolkit`) to the MCP server above. It uses the agent's own API key. There is no second sign-in.
+
+```
+agent ──MCP──▶ callTool
+                 │
+                 ├─ paypal_get_order / paypal_list_transactions /
+                 │  paypal_list_disputes / paypal_get_dispute
+                 │      └─▶ check args ─▶ Agent Toolkit (live) or local ledger (mock)
+                 │                      ─▶ keep only this caller's orders and captures
+                 │
+                 ├─ paypal_create_order, paypal_pay_order, paypal_create_invoice,
+                 │  paypal_send_invoice, paypal_create_refund, paypal_create_payout, any other paypal_*
+                 │      └─▶ refused before the toolkit is loaded: "call request_purchase"
+                 │
+                 └─ request_purchase ─▶ intent guard ─▶ evaluateSpend ─▶ Orders v2 vault charge
+```
+
+Four walls keep a model from moving money through the toolkit:
+
+1. **Configuration.** AgentPurse builds the toolkit with only `orders.get`, `transactions.list`, `disputes.list`, and `disputes.get` switched on, so the toolkit's own filter drops every write tool.
+2. **Allowlist.** `callTool` refuses any `paypal_*` name that is not one of the four read tools, before any toolkit code runs. A toolkit method that moves money gets a message pointing to `request_purchase`.
+3. **Scope.** Every read is limited to orders in `paypal_orders` that belong to the caller's household, and to the caller's own agent when it is an agent key. `get_order` checks ownership before calling PayPal. Transaction and dispute lists are filtered to the caller's capture ids, because the REST app is shared by every purse.
+4. **Mode.** The package is imported only when `PAYPAL_MODE=live`. Mock mode answers the same four tools from the local ledger, with no keys and no network.
+
+The only path to a PayPal charge is still `request_purchase`, so the guard and the clerk decide every payment. `tests/toolkit.test.ts` calls each money-moving toolkit name with a runner that records calls, and checks that the runner is never called and no order, intent, or receipt is written.
 
 ## Catalog purchases
 

@@ -16,7 +16,7 @@ describe("MCP", () => {
     expect(await handleMcpMessage(sql, actor, { jsonrpc: "2.0", method: "notifications/initialized" })).toBeNull();
     const tools = await handleMcpMessage(sql, actor, { jsonrpc: "2.0", id: 2, method: "tools/list" });
     const names = ((tools as { result: { tools: Array<{ name: string }> } }).result.tools).map((tool) => tool.name);
-    expect(names).toEqual(["search_merchants", "search_products", "get_product", "check_price", "find_alternatives", "get_quote", "request_purchase", "watch_price", "list_watches", "cancel_watch", "get_budget", "list_receipts"]);
+    expect(names).toEqual(["search_merchants", "search_products", "get_product", "check_price", "find_alternatives", "get_quote", "request_purchase", "watch_price", "list_watches", "cancel_watch", "get_budget", "list_receipts", "paypal_get_order", "paypal_list_transactions", "paypal_list_disputes", "paypal_get_dispute"]);
 
     const quote = await handleMcpMessage(sql, actor, {
       jsonrpc: "2.0",

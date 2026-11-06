@@ -44,7 +44,7 @@ AgentPurse is a checkbook for AI agents.
 - **A human signs big cheques.** Above $50, or at an untrusted store, the purchase is held until the owner clicks Approve and pay. An agent key can never sign.
 - **Real shopping with Channel3.** Agents search live offers from real stores, check today's price against 90 days of history, and set price watches. The server reads every price from Channel3 itself, so an agent can never name its own price. Listing text is treated as untrusted and goes through the guard.
 - **Kill switches.** Pause one agent, panic-freeze every payment, or revoke, which deletes the PayPal payment token at PayPal, not just a local flag.
-- **Works with any MCP agent.** Grok Bot, Claude, and Cursor connect over MCP (stdio or streamable HTTP) with their own key, and get 12 tools. Only `request_purchase` can lead to a payment, and the clerk still rules on it.
+- **Works with any MCP agent.** Grok Bot, Claude, and Cursor connect over MCP (stdio or streamable HTTP) with their own key, and get 16 tools, including four read-only tools from the PayPal Agent Toolkit. Only `request_purchase` can lead to a payment, and the clerk still rules on it.
 
 The public demo runs on the real PayPal sandbox and live Channel3 data. Locally it defaults to mock mode, so anyone can run it with no keys.
 
@@ -172,6 +172,7 @@ PayPal (sandbox, live on the hosted demo):
 - Refunds: captures can be refunded from the dashboard.
 - Webhooks: PAYMENT.CAPTURE.COMPLETED and PAYMENT.CAPTURE.REFUNDED events are signature-verified before they become receipts.
 - Revoke: the kill switch deletes the vault payment token at PayPal.
+- PayPal Agent Toolkit (@paypal/agent-toolkit): our MCP server exposes the toolkit's get_order, list_transactions, list_disputes, and get_dispute tools to agents, using the agent's own key. Results are limited to that agent's own orders. The toolkit's tools that move money (create_order, pay_order, invoices, refunds, subscriptions, payouts) are switched off in its configuration and refused by name. The agent is told to call request_purchase, so every payment still goes through the intent guard and the clerk.
 
 AI:
 - AI agents are the users of the product: Grok Bot, Claude, and Cursor connect over our MCP server (stdio and streamable HTTP) with their own API key and allowance, search products, and ask to pay in plain English.
